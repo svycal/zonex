@@ -22,6 +22,7 @@ defmodule Zonex.MixProject do
   defp deps do
     [
       {:tzdata, "~> 1.1"},
+      {:timex, "~> 3.7"},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false}
     ]
   end
