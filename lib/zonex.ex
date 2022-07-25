@@ -18,6 +18,37 @@ defmodule Zonex do
     |> Enum.map(&cast(&1, datetime))
   end
 
+  @doc """
+  Gets a zone for a given Olson time zone name.
+  """
+  @spec get(name :: String.t(), datetime :: DateTime.t()) ::
+          {:ok, Zone.t()} | {:error, :zone_not_found}
+  def get(name, %DateTime{} = datetime) do
+    if Tzdata.canonical_zone?(name) do
+      {:ok, cast(name, datetime)}
+    else
+      datetime
+      |> list()
+      |> Enum.find(&(name in &1.aliases))
+      |> after_find()
+    end
+  end
+
+  defp after_find(%Zone{} = zone), do: {:ok, zone}
+  defp after_find(_), do: {:error, :zone_not_found}
+
+  @doc """
+  Gets a zone for a given Olson time zone name and raises if not found.
+  """
+  @spec get!(name :: String.t(), datetime :: DateTime.t()) ::
+          {:ok, Zone.t()} | {:error, :zone_not_found}
+  def get!(name, %DateTime{} = datetime) do
+    case get(name, datetime) do
+      {:ok, zone} -> zone
+      _ -> raise "zone not found"
+    end
+  end
+
   defp cast(name, datetime) do
     standard_name = @standard_names[name]
     zone = Timex.Timezone.get(name, datetime)
@@ -31,13 +62,13 @@ defmodule Zonex do
       zone: zone,
       offset: offset,
       formatted_offset: "GMT#{format_offset(offset)}",
-      visible: visible?(name)
+      listed: listed?(name)
     }
   end
 
-  defp visible?("Etc/" <> _), do: false
+  defp listed?("Etc/" <> _), do: false
 
-  defp visible?(name) do
+  defp listed?(name) do
     Map.has_key?(@standard_names, name)
   end
 

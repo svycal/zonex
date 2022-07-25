@@ -11,18 +11,18 @@ defmodule Zonex.Zone do
     :zone,
     :offset,
     :formatted_offset,
-    :visible
+    :listed
   ]
   defstruct @enforce_keys
 
   @type t :: %__MODULE__{
           name: Calendar.time_zone(),
           aliases: [Calendar.time_zone()],
-          standard_name: String.t(),
-          common_name: String.t(),
+          standard_name: String.t() | nil,
+          common_name: String.t() | nil,
           zone: Timex.TimezoneInfo.t() | Timex.AmbiguousTimezoneInfo.t(),
           offset: integer(),
           formatted_offset: String.t(),
-          visible: boolean()
+          listed: boolean()
         }
 end
