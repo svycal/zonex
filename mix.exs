@@ -23,6 +23,8 @@ defmodule Zonex.MixProject do
     [
       {:tzdata, "~> 1.1"},
       {:timex, "~> 3.7"},
+      {:sweet_xml, "~> 0.6"},
+      {:saxmerl, "~> 0.1"},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false}
     ]
   end
