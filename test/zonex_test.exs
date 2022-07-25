@@ -46,6 +46,37 @@ defmodule ZonexTest do
     end)
   end
 
+  test "looks up aliases" do
+    # Africa/Djibouti is an alias for Africa/Nairobi
+    assert Zonex.get!("Africa/Djibouti", now()) == Zonex.get!("Africa/Nairobi", now())
+  end
+
+  test "straddles the DST boundary" do
+    # iex> DateTime.new(~D[2018-10-28], ~T[02:00:00], "Europe/Copenhagen")
+    # {:ambiguous, #DateTime<2018-10-28 02:00:00+02:00 CEST Europe/Copenhagen>,
+    # #DateTime<2018-10-28 02:00:00+01:00 CET Europe/Copenhagen>}
+    assert Zonex.get!("Europe/Copenhagen", ~U[2018-10-28 00:00:00Z]).formatted_offset ==
+             "GMT+02:00"
+
+    assert Zonex.get!("Europe/Copenhagen", ~U[2018-10-28 00:30:00Z]).formatted_offset ==
+             "GMT+02:00"
+
+    assert Zonex.get!("Europe/Copenhagen", ~U[2018-10-28 01:00:00Z]).formatted_offset ==
+             "GMT+01:00"
+
+    # iex> DateTime.new(~D[2022-03-27], ~T[02:00:00], "Europe/Copenhagen")
+    # {:gap, #DateTime<2022-03-27 01:59:59.999999+01:00 CET Europe/Copenhagen>,
+    # #DateTime<2022-03-27 03:00:00+02:00 CEST Europe/Copenhagen>}
+    assert Zonex.get!("Europe/Copenhagen", ~U[2022-03-27 00:00:00Z]).formatted_offset ==
+             "GMT+01:00"
+
+    assert Zonex.get!("Europe/Copenhagen", ~U[2022-03-27 00:30:00Z]).formatted_offset ==
+             "GMT+01:00"
+
+    assert Zonex.get!("Europe/Copenhagen", ~U[2022-03-27 01:00:00Z]).formatted_offset ==
+             "GMT+02:00"
+  end
+
   defp all_zones do
     Zonex.list(now())
   end
