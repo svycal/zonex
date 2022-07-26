@@ -51,6 +51,68 @@ defmodule Zonex do
     end
   end
 
+  @doc """
+  Determines if a zone name is legacy.
+
+      iex> Zonex.legacy?("America/Chicago")
+      false
+
+      iex> Zonex.legacy?("WET")
+      true
+  """
+  @spec legacy?(Calendar.time_zone()) :: boolean()
+  def legacy?(name) do
+    # Include legacy time zones, like "EST".
+    # Olson time zones (e.g. "America/Chicago") always
+    # contain a /, so this is a decent enough proxy.
+    !String.contains?(name, "/")
+  end
+
+  @doc """
+  Builds a long descriptive label with GMT offset.
+
+      iex> Zonex.long_label(Zonex.get!("America/Chicago", ~U[2022-06-01 00:00:00Z]))
+      "(GMT-05:00) Central Time (US & Canada)"
+
+      iex> Zonex.long_label(Zonex.get!("America/Shiprock", ~U[2022-06-01 00:00:00Z]))
+      "(GMT-06:00) Mountain Time (US & Canada)"
+
+      iex> Zonex.long_label(Zonex.get!("America/Kentucky/Louisville", ~U[2022-06-01 00:00:00Z]))
+      "(GMT-04:00) America - Kentucky - Louisville"
+  """
+  @spec long_label(Zone.t()) :: String.t()
+  def long_label(%Zone{formatted_offset: offset} = zone) do
+    "(#{offset}) #{friendly_name(zone)}"
+  end
+
+  @doc """
+  Builds a short descriptive label.
+
+      iex> Zonex.short_label(Zonex.get!("America/Chicago", ~U[2022-06-01 00:00:00Z]))
+      "Central Time (US & Canada)"
+
+      iex> Zonex.short_label(Zonex.get!("America/Kentucky/Louisville", ~U[2022-06-01 00:00:00Z]))
+      "America - Kentucky - Louisville"
+  """
+  @spec short_label(Zone.t()) :: String.t()
+  def short_label(%Zone{} = zone) do
+    friendly_name(zone)
+  end
+
+  defp friendly_name(%{common_name: common_name}) when is_binary(common_name) do
+    common_name
+  end
+
+  defp friendly_name(%{standard_name: standard_name}) when is_binary(standard_name) do
+    standard_name
+  end
+
+  defp friendly_name(%{name: name}) do
+    name
+    |> String.split("/")
+    |> Enum.join(" - ")
+  end
+
   defp cast(name, datetime, aliases) do
     standard_name = @standard_names[name]
     zone = Timex.Timezone.get(name, datetime)
@@ -67,17 +129,6 @@ defmodule Zonex do
       listed: listed?(name),
       legacy: legacy?(name)
     }
-  end
-
-  @doc """
-  Determines if a zone name is legacy.
-  """
-  @spec legacy?(Calendar.time_zone()) :: boolean()
-  def legacy?(name) do
-    # Include legacy time zones, like "EST".
-    # Olson time zones (e.g. "America/Chicago") always
-    # contain a /, so this is a decent enough proxy.
-    !String.contains?(name, "/")
   end
 
   defp listed?("Etc/" <> _), do: false
