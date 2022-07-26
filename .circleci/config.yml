@@ -63,6 +63,6 @@ jobs:
           command: mix dialyzer
 
 workflows:
-  build-deploy:
+  build:
     jobs:
       - build
