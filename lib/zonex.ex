@@ -77,8 +77,8 @@ defmodule Zonex do
       iex> Zonex.long_label(Zonex.get!("America/Shiprock", ~U[2022-06-01 00:00:00Z]))
       "(GMT-06:00) Mountain Time (US & Canada)"
 
-      iex> Zonex.long_label(Zonex.get!("America/Kentucky/Louisville", ~U[2022-06-01 00:00:00Z]))
-      "(GMT-04:00) America - Kentucky - Louisville"
+      iex> Zonex.long_label(Zonex.get!("America/North_Dakota/New_Salem", ~U[2022-06-01 00:00:00Z]))
+      "(GMT-05:00) America - North Dakota - New Salem"
   """
   @spec long_label(Zone.t()) :: String.t()
   def long_label(%Zone{formatted_offset: offset} = zone) do
@@ -109,8 +109,8 @@ defmodule Zonex do
 
   defp friendly_name(%{name: name}) do
     name
-    |> String.split("/")
-    |> Enum.join(" - ")
+    |> String.replace(~r/\//, " - ", global: true)
+    |> String.replace(~r/_/, " ", global: true)
   end
 
   defp cast(name, datetime, aliases) do
