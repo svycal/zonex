@@ -1,6 +1,6 @@
 # Zonex
 
-**TODO: Add description**
+Zonex is an Elixir library for taming and enhancing time zones.
 
 ## Installation
 
