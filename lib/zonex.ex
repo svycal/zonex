@@ -3,6 +3,7 @@ defmodule Zonex do
   Documentation for `Zonex`.
   """
 
+  alias Zonex.Aliases
   alias Zonex.WindowsZones
   alias Zonex.Zone
 
@@ -14,8 +15,10 @@ defmodule Zonex do
   """
   @spec list(datetime :: DateTime.t()) :: [Zone.t()]
   def list(%DateTime{} = datetime) do
+    aliases = Aliases.forward_mapping()
+
     Tzdata.canonical_zone_list()
-    |> Enum.map(&cast(&1, datetime))
+    |> Enum.map(&cast(&1, datetime, aliases))
   end
 
   @doc """
@@ -25,7 +28,7 @@ defmodule Zonex do
           {:ok, Zone.t()} | {:error, :zone_not_found}
   def get(name, %DateTime{} = datetime) do
     if Tzdata.canonical_zone?(name) do
-      {:ok, cast(name, datetime)}
+      {:ok, cast(name, datetime, Aliases.forward_mapping())}
     else
       datetime
       |> list()
@@ -49,34 +52,39 @@ defmodule Zonex do
     end
   end
 
-  defp cast(name, datetime) do
+  defp cast(name, datetime, aliases) do
     standard_name = @standard_names[name]
     zone = Timex.Timezone.get(name, datetime)
     offset = Timex.Timezone.total_offset(zone)
 
     %Zone{
       name: name,
-      aliases: Map.get(aliases(), name, []),
+      aliases: Map.get(aliases, name, []),
       standard_name: standard_name,
       common_name: @common_names[standard_name],
       zone: zone,
       offset: offset,
       formatted_offset: "GMT#{format_offset(offset)}",
-      listed: listed?(name)
+      listed: listed?(name),
+      legacy: legacy?(name)
     }
+  end
+
+  @doc """
+  Determines if a zone name is legacy.
+  """
+  @spec legacy?(Calendar.time_zone()) :: boolean()
+  def legacy?(name) do
+    # Include legacy time zones, like "EST".
+    # Olson time zones (e.g. "America/Chicago") always
+    # contain a /, so this is a decent enough proxy.
+    !String.contains?(name, "/")
   end
 
   defp listed?("Etc/" <> _), do: false
 
   defp listed?(name) do
-    Map.has_key?(@standard_names, name)
-  end
-
-  defp aliases do
-    Tzdata.links()
-    |> Enum.group_by(&elem(&1, 1))
-    |> Enum.map(&{elem(&1, 0), Enum.map(elem(&1, 1), fn {value, _} -> value end)})
-    |> Map.new()
+    !legacy?(name) && Map.has_key?(@standard_names, name)
   end
 
   # Logic borrowed from Timex inspect logic:

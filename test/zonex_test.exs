@@ -24,6 +24,20 @@ defmodule ZonexTest do
     end)
   end
 
+  test "legacy zones aren't listed" do
+    refute Zonex.get!("CST6CDT", now()).listed
+  end
+
+  test "excludes legacy zones from aliases" do
+    refute "Cuba" in Zonex.get!("America/Havana", now()).aliases
+  end
+
+  test "flags legacy zones" do
+    assert Zonex.get!("EST", now()).legacy
+    assert Zonex.get!("CST6CDT", now()).legacy
+    refute Zonex.get!("America/Chicago", now()).legacy
+  end
+
   test "uses offset relative to given date" do
     assert Zonex.get!("America/Chicago", ~U[2022-01-01 00:00:00Z]).offset == -21_600
     assert Zonex.get!("America/Chicago", ~U[2022-06-01 00:00:00Z]).offset == -18_000
@@ -52,29 +66,29 @@ defmodule ZonexTest do
   end
 
   test "straddles the DST boundary" do
+    name = "Europe/Copenhagen"
+
     # iex> DateTime.new(~D[2018-10-28], ~T[02:00:00], "Europe/Copenhagen")
     # {:ambiguous, #DateTime<2018-10-28 02:00:00+02:00 CEST Europe/Copenhagen>,
     # #DateTime<2018-10-28 02:00:00+01:00 CET Europe/Copenhagen>}
-    assert Zonex.get!("Europe/Copenhagen", ~U[2018-10-28 00:00:00Z]).formatted_offset ==
-             "GMT+02:00"
+    before_fallback = ~U[2018-10-28 00:00:00Z]
+    during_fallback = ~U[2018-10-28 00:30:00Z]
+    after_fallback = ~U[2018-10-28 01:00:00Z]
 
-    assert Zonex.get!("Europe/Copenhagen", ~U[2018-10-28 00:30:00Z]).formatted_offset ==
-             "GMT+02:00"
-
-    assert Zonex.get!("Europe/Copenhagen", ~U[2018-10-28 01:00:00Z]).formatted_offset ==
-             "GMT+01:00"
+    assert Zonex.get!(name, before_fallback).formatted_offset == "GMT+02:00"
+    assert Zonex.get!(name, during_fallback).formatted_offset == "GMT+02:00"
+    assert Zonex.get!(name, after_fallback).formatted_offset == "GMT+01:00"
 
     # iex> DateTime.new(~D[2022-03-27], ~T[02:00:00], "Europe/Copenhagen")
     # {:gap, #DateTime<2022-03-27 01:59:59.999999+01:00 CET Europe/Copenhagen>,
     # #DateTime<2022-03-27 03:00:00+02:00 CEST Europe/Copenhagen>}
-    assert Zonex.get!("Europe/Copenhagen", ~U[2022-03-27 00:00:00Z]).formatted_offset ==
-             "GMT+01:00"
+    before_springfwd = ~U[2022-03-27 00:00:00Z]
+    during_springfwd = ~U[2022-03-27 00:30:00Z]
+    after_springfwd = ~U[2022-03-27 01:00:00Z]
 
-    assert Zonex.get!("Europe/Copenhagen", ~U[2022-03-27 00:30:00Z]).formatted_offset ==
-             "GMT+01:00"
-
-    assert Zonex.get!("Europe/Copenhagen", ~U[2022-03-27 01:00:00Z]).formatted_offset ==
-             "GMT+02:00"
+    assert Zonex.get!(name, before_springfwd).formatted_offset == "GMT+01:00"
+    assert Zonex.get!(name, during_springfwd).formatted_offset == "GMT+01:00"
+    assert Zonex.get!(name, after_springfwd).formatted_offset == "GMT+02:00"
   end
 
   defp all_zones do

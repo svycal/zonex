@@ -11,7 +11,8 @@ defmodule Zonex.Zone do
     :zone,
     :offset,
     :formatted_offset,
-    :listed
+    :listed,
+    :legacy
   ]
   defstruct @enforce_keys
 
@@ -23,6 +24,7 @@ defmodule Zonex.Zone do
           zone: Timex.TimezoneInfo.t() | Timex.AmbiguousTimezoneInfo.t(),
           offset: integer(),
           formatted_offset: String.t(),
-          listed: boolean()
+          listed: boolean(),
+          legacy: boolean()
         }
 end
