@@ -43,8 +43,7 @@ defmodule Zonex do
   @doc """
   Gets a zone for a given Olson time zone name and raises if not found.
   """
-  @spec get!(name :: String.t(), datetime :: DateTime.t()) ::
-          {:ok, Zone.t()} | {:error, :zone_not_found}
+  @spec get!(name :: String.t(), datetime :: DateTime.t()) :: Zone.t() | no_return()
   def get!(name, %DateTime{} = datetime) do
     case get(name, datetime) do
       {:ok, zone} -> zone

@@ -7,7 +7,10 @@ defmodule Zonex.MixProject do
       version: "0.1.0",
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      dialyzer: [
+        plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
+      ]
     ]
   end
 
@@ -25,7 +28,8 @@ defmodule Zonex.MixProject do
       {:timex, "~> 3.7"},
       {:sweet_xml, "~> 0.6"},
       {:saxmerl, "~> 0.1"},
-      {:credo, "~> 1.6", only: [:dev, :test], runtime: false}
+      {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.0", only: [:dev], runtime: false}
     ]
   end
 end
