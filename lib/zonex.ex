@@ -68,35 +68,34 @@ defmodule Zonex do
     !String.contains?(name, "/")
   end
 
-  @doc """
-  Builds a long descriptive label with GMT offset.
+  defp cast(name, datetime, aliases) do
+    standard_name = @standard_names[name]
+    common_name = @common_names[standard_name]
+    zone = Timex.Timezone.get(name, datetime)
+    offset = Timex.Timezone.total_offset(zone)
+    formatted_offset = "GMT#{format_offset(offset)}"
 
-      iex> Zonex.long_label(Zonex.get!("America/Chicago", ~U[2022-06-01 00:00:00Z]))
-      "(GMT-05:00) Central Time (US & Canada)"
+    names = %{
+      common_name: common_name,
+      standard_name: standard_name,
+      name: name,
+      formatted_offset: formatted_offset
+    }
 
-      iex> Zonex.long_label(Zonex.get!("America/Shiprock", ~U[2022-06-01 00:00:00Z]))
-      "(GMT-06:00) Mountain Time (US & Canada)"
-
-      iex> Zonex.long_label(Zonex.get!("America/North_Dakota/New_Salem", ~U[2022-06-01 00:00:00Z]))
-      "(GMT-05:00) America - North Dakota - New Salem"
-  """
-  @spec long_label(Zone.t()) :: String.t()
-  def long_label(%Zone{formatted_offset: offset} = zone) do
-    "(#{offset}) #{friendly_name(zone)}"
-  end
-
-  @doc """
-  Builds a short descriptive label.
-
-      iex> Zonex.short_label(Zonex.get!("America/Chicago", ~U[2022-06-01 00:00:00Z]))
-      "Central Time (US & Canada)"
-
-      iex> Zonex.short_label(Zonex.get!("America/Kentucky/Louisville", ~U[2022-06-01 00:00:00Z]))
-      "America - Kentucky - Louisville"
-  """
-  @spec short_label(Zone.t()) :: String.t()
-  def short_label(%Zone{} = zone) do
-    friendly_name(zone)
+    %Zone{
+      name: name,
+      aliases: Map.get(aliases, name, []),
+      standard_name: standard_name,
+      common_name: common_name,
+      friendly_name: friendly_name(names),
+      friendly_name_with_offset: friendly_name_with_offset(names),
+      zone: zone,
+      offset: offset,
+      formatted_offset: formatted_offset,
+      abbreviation: zone.abbreviation,
+      listed: listed?(name),
+      legacy: legacy?(name)
+    }
   end
 
   defp friendly_name(%{common_name: common_name}) when is_binary(common_name) do
@@ -113,22 +112,8 @@ defmodule Zonex do
     |> String.replace(~r/_/, " ", global: true)
   end
 
-  defp cast(name, datetime, aliases) do
-    standard_name = @standard_names[name]
-    zone = Timex.Timezone.get(name, datetime)
-    offset = Timex.Timezone.total_offset(zone)
-
-    %Zone{
-      name: name,
-      aliases: Map.get(aliases, name, []),
-      standard_name: standard_name,
-      common_name: @common_names[standard_name],
-      zone: zone,
-      offset: offset,
-      formatted_offset: "GMT#{format_offset(offset)}",
-      listed: listed?(name),
-      legacy: legacy?(name)
-    }
+  defp friendly_name_with_offset(%{formatted_offset: offset} = names) do
+    "(#{offset}) #{friendly_name(names)}"
   end
 
   defp listed?("Etc/" <> _), do: false
