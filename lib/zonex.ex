@@ -7,9 +7,6 @@ defmodule Zonex do
   alias Zonex.WindowsZones
   alias Zonex.Zone
 
-  @standard_names WindowsZones.standard_names()
-  @common_names WindowsZones.common_names()
-
   @doc """
   Lists all time zones.
   """
@@ -69,8 +66,8 @@ defmodule Zonex do
   end
 
   defp cast(name, datetime, aliases) do
-    standard_name = @standard_names[name]
-    common_name = @common_names[standard_name]
+    standard_name = WindowsZones.standard_names()[name]
+    common_name = WindowsZones.common_names()[standard_name]
     zone = Timex.Timezone.get(name, datetime)
     offset = Timex.Timezone.total_offset(zone)
     formatted_offset = "GMT#{format_offset(offset)}"
@@ -119,7 +116,7 @@ defmodule Zonex do
   defp listed?("Etc/" <> _), do: false
 
   defp listed?(name) do
-    !legacy?(name) && Map.has_key?(@standard_names, name)
+    !legacy?(name) && Map.has_key?(Zonex.WindowsZones.standard_names(), name)
   end
 
   # Logic borrowed from Timex inspect logic:
