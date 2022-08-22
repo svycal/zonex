@@ -6,8 +6,8 @@ defmodule Zonex.MetaZones.Rule do
   defstruct [:from, :to, :mzone]
 
   @type t :: %__MODULE__{
-          from: DateTime.t() | nil,
-          to: DateTime.t() | nil,
+          from: DateTime.t(),
+          to: DateTime.t(),
           mzone: String.t()
         }
 end

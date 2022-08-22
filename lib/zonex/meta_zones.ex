@@ -7,6 +7,8 @@ defmodule Zonex.MetaZones do
   import SweetXml
   alias Zonex.MetaZones.Rule
 
+  @type meta_zone :: String.t()
+
   # Client
 
   @doc """
@@ -19,9 +21,33 @@ defmodule Zonex.MetaZones do
   @doc """
   A mapping of Olson time zone names to meta zone rules.
   """
-  @spec rules() :: %{Calendar.time_zone() => [Rule.t()]}
-  def rules do
-    GenServer.call(__MODULE__, :rules)
+  @spec time_zone_rules() :: %{Calendar.time_zone() => [Rule.t()]}
+  def time_zone_rules do
+    GenServer.call(__MODULE__, :time_zone_rules)
+  end
+
+  @doc """
+  Fetches the meta zone for a time zone at a particular instant.
+  """
+  @spec get(time_zone :: Calendar.time_zone(), instant :: DateTime.t()) ::
+          {:ok, meta_zone()} | {:error, :meta_zone_not_found}
+  def get(time_zone, %DateTime{} = instant) do
+    case time_zone_rules()[time_zone] do
+      [_ | _] = rules -> meta_zone_at(rules, instant)
+      _ -> {:error, :meta_zone_not_found}
+    end
+  end
+
+  defp meta_zone_at(rules, instant) do
+    rules
+    |> Enum.find(fn rule ->
+      DateTime.compare(instant, rule.from) in [:gt, :eq] and
+        DateTime.compare(instant, rule.to) in [:lt]
+    end)
+    |> then(fn
+      %Rule{mzone: mzone} -> mzone
+      _ -> {:error, :meta_zone_not_found}
+    end)
   end
 
   # Server
@@ -34,7 +60,7 @@ defmodule Zonex.MetaZones do
   end
 
   @impl GenServer
-  def handle_call(:rules, _from, state) do
+  def handle_call(:time_zone_rules, _from, state) do
     {:reply, state, state}
   end
 
@@ -78,9 +104,17 @@ defmodule Zonex.MetaZones do
 
   defp parse_rule(data) do
     %Rule{
-      from: data[:from],
-      to: data[:to],
+      from: data[:from] || beginning_of_time(),
+      to: data[:to] || end_of_time(),
       mzone: data[:mzone]
     }
+  end
+
+  defp beginning_of_time do
+    ~U[0000-01-01 00:00:00Z]
+  end
+
+  defp end_of_time do
+    ~U[9999-01-01 00:00:00Z]
   end
 end
