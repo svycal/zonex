@@ -48,9 +48,15 @@ defmodule ZonexTest do
     assert Zonex.get!("America/Chicago", ~U[2022-06-01 00:00:00Z]).formatted_offset == "GMT-05:00"
   end
 
-  test "includes a common name for all listed zones" do
-    Enum.each(listed_zones(), fn %{common_name: common_name} ->
-      assert is_binary(common_name)
+  test "includes meta zone info" do
+    zone = Zonex.get!("America/Chicago", ~U[2022-01-01 00:00:00Z])
+    assert zone.meta_zone == "America_Central"
+    assert zone.generic_long_name == "Central Time"
+  end
+
+  test "includes a generic long name for all listed zones" do
+    Enum.each(listed_zones(), fn %{name: name, generic_long_name: generic_long_name} ->
+      assert is_binary(generic_long_name), "#{name} doesn't have a generic long name"
     end)
   end
 

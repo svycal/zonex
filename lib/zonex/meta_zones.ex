@@ -45,7 +45,7 @@ defmodule Zonex.MetaZones do
         DateTime.compare(instant, rule.to) in [:lt]
     end)
     |> then(fn
-      %Rule{mzone: mzone} -> mzone
+      %Rule{mzone: mzone} -> {:ok, mzone}
       _ -> {:error, :meta_zone_not_found}
     end)
   end
@@ -56,17 +56,17 @@ defmodule Zonex.MetaZones do
   def init(_arg) do
     path = Application.app_dir(:zonex, "priv/metaZones.xml")
     contents = File.read!(path)
-    {:ok, parse_contents(contents)}
+    {:ok, %{rules: parse_rules(contents)}}
   end
 
   @impl GenServer
   def handle_call(:time_zone_rules, _from, state) do
-    {:reply, state, state}
+    {:reply, state[:rules], state}
   end
 
   # Private helpers
 
-  defp parse_contents(contents) do
+  defp parse_rules(contents) do
     contents
     |> parse_xml()
     |> xpath(~x"//supplementalData/metaZones/metazoneInfo/timezone"el,
@@ -78,7 +78,7 @@ defmodule Zonex.MetaZones do
         to: ~x"./@to"s |> transform_by(&parse_date/1)
       ]
     )
-    |> Enum.map(&{&1[:name], parse_rules(&1[:rules])})
+    |> Enum.map(&{&1[:name], parse_rule_list(&1[:rules])})
     |> Map.new()
   end
 
@@ -98,7 +98,7 @@ defmodule Zonex.MetaZones do
 
   defp parse_date(_), do: nil
 
-  defp parse_rules(data) do
+  defp parse_rule_list(data) do
     Enum.map(data, &parse_rule/1)
   end
 

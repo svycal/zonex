@@ -4,6 +4,7 @@ defmodule Zonex do
   """
 
   alias Zonex.Aliases
+  alias Zonex.MetaZones
   alias Zonex.WindowsZones
   alias Zonex.Zone
 
@@ -66,57 +67,60 @@ defmodule Zonex do
   end
 
   defp cast(name, datetime, aliases) do
-    standard_name = WindowsZones.standard_names()[name]
-    common_name = WindowsZones.common_names()[standard_name]
+    windows_name = WindowsZones.standard_names()[name]
     zone = Timex.Timezone.get(name, datetime)
     offset = Timex.Timezone.total_offset(zone)
     formatted_offset = "GMT#{format_offset(offset)}"
 
+    meta_zone_name = lookup_meta_zone_name(name, datetime)
+
+    generic_long_name =
+      case lookup_meta_zone(meta_zone_name) do
+        {:ok, meta_zone} -> meta_zone.long.generic
+        _ -> nil
+      end
+
     names = %{
-      common_name: common_name,
-      standard_name: standard_name,
+      generic_long_name: generic_long_name,
+      windows_name: windows_name,
       name: name,
       formatted_offset: formatted_offset
     }
 
     %Zone{
       name: name,
+      meta_zone: meta_zone_name,
       aliases: Map.get(aliases, name, []),
-      standard_name: standard_name,
-      common_name: common_name,
-      friendly_name: friendly_name(names),
-      friendly_name_with_offset: friendly_name_with_offset(names),
+      generic_long_name: generic_long_name,
+      windows_name: windows_name,
       zone: zone,
       offset: offset,
       formatted_offset: formatted_offset,
       abbreviation: zone.abbreviation,
-      listed: listed?(name),
+      listed: listed?(name, names),
       legacy: legacy?(name)
     }
   end
 
-  defp friendly_name(%{common_name: common_name}) when is_binary(common_name) do
-    common_name
+  defp lookup_meta_zone_name(name, datetime) do
+    case MetaZones.get(name, datetime) do
+      {:ok, meta_zone_name} -> meta_zone_name
+      _ -> nil
+    end
   end
 
-  defp friendly_name(%{standard_name: standard_name}) when is_binary(standard_name) do
-    standard_name
+  defp lookup_meta_zone(type) when is_binary(type) do
+    type
+    |> String.downcase()
+    |> tz_name_backend().metazone_for_type()
   end
 
-  defp friendly_name(%{name: name}) do
-    name
-    |> String.replace(~r/\//, " - ", global: true)
-    |> String.replace(~r/_/, " ", global: true)
-  end
+  defp lookup_meta_zone(_), do: {:error, :meta_zone_not_found}
 
-  defp friendly_name_with_offset(%{formatted_offset: offset} = names) do
-    "(#{offset}) #{friendly_name(names)}"
-  end
+  defp listed?("Etc/" <> _, _), do: false
 
-  defp listed?("Etc/" <> _), do: false
-
-  defp listed?(name) do
-    !legacy?(name) && Map.has_key?(Zonex.WindowsZones.standard_names(), name)
+  defp listed?(name, names) do
+    !legacy?(name) && names[:generic_long_name]
   end
 
   # Logic borrowed from Timex inspect logic:
@@ -150,5 +154,13 @@ defmodule Zonex do
     else
       number_str
     end
+  end
+
+  defp cldr_backend do
+    Application.fetch_env!(:zonex, :cldr_backend)
+  end
+
+  defp tz_name_backend do
+    String.to_existing_atom("Elixir.#{inspect(cldr_backend())}.TimeZoneName")
   end
 end

@@ -32,8 +32,8 @@ defmodule Zonex.MetaZonesTest do
   end
 
   test "fetches the right meta zone based on range" do
-    assert MetaZones.get("Europe/Vilnius", ~U[1989-03-26 23:00:00Z]) == "Europe_Eastern"
-    assert MetaZones.get("Europe/Vilnius", ~U[1998-03-30 23:00:00Z]) == "Europe_Central"
-    assert MetaZones.get("Europe/Vilnius", ~U[1990-11-01 23:00:00Z]) == "Europe_Eastern"
+    assert MetaZones.get("Europe/Vilnius", ~U[1989-03-26 23:00:00Z]) == {:ok, "Europe_Eastern"}
+    assert MetaZones.get("Europe/Vilnius", ~U[1998-03-30 23:00:00Z]) == {:ok, "Europe_Central"}
+    assert MetaZones.get("Europe/Vilnius", ~U[1990-11-01 23:00:00Z]) == {:ok, "Europe_Eastern"}
   end
 end
