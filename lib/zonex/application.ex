@@ -8,6 +8,7 @@ defmodule Zonex.Application do
   @impl true
   def start(_type, _args) do
     children = [
+      Zonex.MetaZones,
       Zonex.WindowsZones
     ]
 
