@@ -78,25 +78,33 @@ defmodule Zonex do
     maybe_meta_zone = build_meta_zone(name, datetime, dst, opts)
     maybe_windows_zone = build_windows_zone(name)
     long_name = build_long_name(name, maybe_meta_zone, maybe_windows_zone)
-    long_name_with_city = build_long_name_with_city(long_name, maybe_meta_zone)
+    generic_long_name = build_generic_long_name(name, maybe_meta_zone, maybe_windows_zone)
 
     %Zone{
       name: name,
       meta_zone: maybe_meta_zone,
       windows_zone: maybe_windows_zone,
       long_name: long_name,
-      long_name_with_city: long_name_with_city,
+      generic_long_name: generic_long_name,
+      exemplar_city: exemplar_city(maybe_meta_zone),
       abbreviation: zone.abbreviation,
       aliases: Map.get(aliases, name, []),
       zone: zone,
       offset: offset,
       formatted_offset: formatted_offset,
-      listed: listed?(name, maybe_meta_zone),
+      standard: standard?(name, maybe_meta_zone),
       legacy: legacy?(name),
       dst: dst,
       canonical: true
     }
   end
+
+  defp build_generic_long_name(_, %{long: %{generic: name}}, _)
+       when is_binary(name),
+       do: name
+
+  defp build_generic_long_name(_, _, %{name: name}) when is_binary(name), do: name
+  defp build_generic_long_name(name, _, _), do: name
 
   defp build_long_name(_, %{long: %{current: name}}, _)
        when is_binary(name),
@@ -109,11 +117,8 @@ defmodule Zonex do
   defp build_long_name(_, _, %{name: name}) when is_binary(name), do: name
   defp build_long_name(name, _, _), do: name
 
-  defp build_long_name_with_city(name, %{exemplar_city: city})
-       when is_binary(city),
-       do: "#{name} (#{city})"
-
-  defp build_long_name_with_city(name, _), do: name
+  defp exemplar_city(%{exemplar_city: city}), do: city
+  defp exemplar_city(_), do: nil
 
   defp dst?(zone_name, datetime) do
     time_point = elem(DateTime.to_gregorian_seconds(datetime), 0)
@@ -168,9 +173,8 @@ defmodule Zonex do
   defp current_name(%{standard: standard}, false) when is_binary(standard), do: standard
   defp current_name(%{generic: generic}, _), do: generic
 
-  defp listed?("Etc/" <> _, _), do: false
-  defp listed?(_, %{territories: territories}), do: "001" in territories
-  defp listed?(_, _), do: false
+  defp standard?(_, %{territories: territories}), do: "001" in territories
+  defp standard?(_, _), do: false
 
   # Logic borrowed from Timex inspect logic:
   # https://github.com/bitwalker/timex/blob/45424fa293066b210eaf94dd650707343583d085/lib/timezone/inspect.ex#L6

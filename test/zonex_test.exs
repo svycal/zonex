@@ -18,14 +18,8 @@ defmodule ZonexTest do
     end)
   end
 
-  test "Etc/* zones aren't listed" do
-    Enum.each(listed_zones(), fn %{name: name} ->
-      refute String.starts_with?(name, "Etc/")
-    end)
-  end
-
-  test "legacy zones aren't listed" do
-    refute Zonex.get!("CST6CDT", now()).listed
+  test "legacy zones aren't standard" do
+    refute Zonex.get!("CST6CDT", now()).standard
   end
 
   test "excludes legacy zones from aliases" do
@@ -78,7 +72,7 @@ defmodule ZonexTest do
     # Current meta zone name if available
     zone = Zonex.get!("America/Chicago", ~U[2022-01-01 00:00:00Z])
     assert zone.long_name == "Central Standard Time"
-    assert zone.long_name_with_city == "Central Standard Time (Chicago)"
+    assert zone.exemplar_city == "Chicago"
 
     zone = Zonex.get!("Europe/London", ~U[2022-06-01 00:00:00Z])
     assert zone.long_name == "British Summer Time"
@@ -90,7 +84,6 @@ defmodule ZonexTest do
     # Generic name for UTC
     zone = Zonex.get!("Etc/UTC", ~U[2022-01-01 00:00:00Z])
     assert zone.long_name == "Coordinated Universal Time"
-    assert zone.long_name_with_city == "Coordinated Universal Time"
   end
 
   test "accepts a locale option" do
@@ -99,12 +92,6 @@ defmodule ZonexTest do
     assert %{
              long: %{generic: "heure du centre nord-américain"}
            } = meta_zone
-  end
-
-  test "all listed zones are designated as 'world' territories" do
-    Enum.each(listed_zones(), fn %{name: name, meta_zone: %{territories: territories}} ->
-      assert "001" in territories, "#{name} isn't a 'world' territory"
-    end)
   end
 
   test "includes a parsed zone struct" do
@@ -146,12 +133,6 @@ defmodule ZonexTest do
 
   defp all_zones do
     Zonex.list(now())
-  end
-
-  defp listed_zones do
-    now()
-    |> Zonex.list()
-    |> Enum.filter(& &1.listed)
   end
 
   defp now do
