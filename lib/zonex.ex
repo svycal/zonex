@@ -14,22 +14,22 @@ defmodule Zonex do
   @doc """
   Lists all time zones.
   """
-  @spec list(datetime :: DateTime.t()) :: [Zone.t()]
-  def list(%DateTime{} = datetime) do
+  @spec list(datetime :: DateTime.t(), opts :: Keyword.t()) :: [Zone.t()]
+  def list(%DateTime{} = datetime, opts \\ []) do
     aliases = Aliases.forward_mapping()
 
     Tzdata.canonical_zone_list()
-    |> Enum.map(&cast(&1, datetime, aliases))
+    |> Enum.map(&cast(&1, datetime, aliases, opts))
   end
 
   @doc """
   Gets a zone for a given Olson time zone name.
   """
-  @spec get(name :: String.t(), datetime :: DateTime.t()) ::
+  @spec get(name :: String.t(), datetime :: DateTime.t(), opts :: Keyword.t()) ::
           {:ok, Zone.t()} | {:error, :zone_not_found}
-  def get(name, %DateTime{} = datetime) do
+  def get(name, %DateTime{} = datetime, opts \\ []) do
     if Tzdata.canonical_zone?(name) do
-      {:ok, cast(name, datetime, Aliases.forward_mapping())}
+      {:ok, cast(name, datetime, Aliases.forward_mapping(), opts)}
     else
       datetime
       |> list()
@@ -44,9 +44,10 @@ defmodule Zonex do
   @doc """
   Gets a zone for a given Olson time zone name and raises if not found.
   """
-  @spec get!(name :: String.t(), datetime :: DateTime.t()) :: Zone.t() | no_return()
-  def get!(name, %DateTime{} = datetime) do
-    case get(name, datetime) do
+  @spec get!(name :: String.t(), datetime :: DateTime.t(), opts :: Keyword.t()) ::
+          Zone.t() | no_return()
+  def get!(name, %DateTime{} = datetime, opts \\ []) do
+    case get(name, datetime, opts) do
       {:ok, zone} -> zone
       _ -> raise "zone not found"
     end
@@ -69,12 +70,12 @@ defmodule Zonex do
     !String.contains?(name, "/")
   end
 
-  defp cast(name, datetime, aliases) do
+  defp cast(name, datetime, aliases, opts) do
     zone = Timex.Timezone.get(name, datetime)
     offset = Timex.Timezone.total_offset(zone)
     formatted_offset = "GMT#{format_offset(offset)}"
     dst = dst?(name, datetime)
-    meta_zone = build_meta_zone(name, datetime, dst)
+    meta_zone = build_meta_zone(name, datetime, dst, opts)
 
     %Zone{
       name: name,
@@ -109,11 +110,11 @@ defmodule Zonex do
     end
   end
 
-  defp build_meta_zone(zone_name, datetime, dst) do
+  defp build_meta_zone(zone_name, datetime, dst, opts) do
     rules = MetaZones.rules_for_zone(zone_name)
 
     with {:ok, mzone} <- MetaZones.resolve(rules, datetime),
-         {:ok, info} <- name_info(zone_name, mzone) do
+         {:ok, info} <- name_info(zone_name, mzone, opts) do
       %MetaZone{
         name: mzone,
         territories: MetaZones.territories(zone_name),
@@ -137,8 +138,8 @@ defmodule Zonex do
 
   defp build_name_variants(_, _), do: nil
 
-  defp name_info(zone_name, type) do
-    tz_name_backend().resolve(zone_name, String.downcase(type))
+  defp name_info(zone_name, mzone, opts) do
+    tz_name_backend().resolve(zone_name, String.downcase(mzone), opts)
   end
 
   defp current_name(%{daylight: daylight}, true) when is_binary(daylight), do: daylight

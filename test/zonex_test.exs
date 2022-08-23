@@ -74,6 +74,14 @@ defmodule ZonexTest do
     refute zone.dst
   end
 
+  test "accepts a locale option" do
+    %{meta_zone: meta_zone} = Zonex.get!("America/Chicago", ~U[2022-01-01 00:00:00Z], locale: :fr)
+
+    assert %{
+             long: %{generic: "heure du centre nord-américain"}
+           } = meta_zone
+  end
+
   test "includes a generic long name for all listed zones" do
     Enum.each(listed_zones(), fn %{name: name, meta_zone: %{long: %{generic: generic}}} ->
       assert is_binary(generic), "#{name} doesn't have a generic long name"
