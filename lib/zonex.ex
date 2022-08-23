@@ -137,15 +137,13 @@ defmodule Zonex do
 
   defp build_name_variants(_, _), do: nil
 
-  defp name_info(zone_name, type) when is_binary(type) do
+  defp name_info(zone_name, type) do
     tz_name_backend().resolve(zone_name, String.downcase(type))
   end
 
-  defp name_info(_, _), do: {:error, :meta_zone_not_found}
-
-  defp current_name(%{daylight: daylight}, true), do: daylight
-  defp current_name(%{standard: standard}, false), do: standard
-  defp current_name(_, _), do: nil
+  defp current_name(%{daylight: daylight}, true) when is_binary(daylight), do: daylight
+  defp current_name(%{standard: standard}, false) when is_binary(standard), do: standard
+  defp current_name(%{generic: generic}, _), do: generic
 
   defp listed?("Etc/" <> _, _), do: false
 

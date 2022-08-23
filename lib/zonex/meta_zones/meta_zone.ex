@@ -23,7 +23,7 @@ defmodule Zonex.MetaZones.MetaZone do
   end
 
   @type t :: %__MODULE__{
-          name: MetaZones.meta_zone(),
+          name: MetaZones.meta_zone_name(),
           territories: [MetaZones.territory()],
           long: Variants.t() | nil,
           short: Variants.t() | nil,
