@@ -10,22 +10,13 @@ defmodule Zonex.WindowsZones do
 
   import SweetXml
 
-  # Client
-
-  @doc """
-  Starts the process.
-  """
-  def start_link([]) do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
-  end
-
   @doc """
   A mapping of Olson time zone names to "standard" names from the windows zones file.
   (e.g. America/Chicago -> Central Standard Time).
   """
-  @spec standard_names() :: %{Calendar.time_zone() => standard_name()}
-  def standard_names do
-    GenServer.call(__MODULE__, :standard_names)
+  @spec standard_name(zone_name :: Calendar.time_zone()) :: standard_name() | nil
+  def standard_name(zone_name) do
+    GenServer.call(__MODULE__, :standard_names)[zone_name]
   end
 
   @doc """
@@ -175,6 +166,15 @@ defmodule Zonex.WindowsZones do
       "Samoa Standard Time" => "Samoa",
       "Line Islands Standard Time" => "Kiritimati Island"
     }
+  end
+
+  # Client
+
+  @doc """
+  Starts the process.
+  """
+  def start_link([]) do
+    GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
   # Server

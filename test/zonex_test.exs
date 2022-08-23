@@ -49,27 +49,33 @@ defmodule ZonexTest do
   end
 
   test "includes meta zone info" do
-    zone = Zonex.get!("America/Chicago", ~U[2022-01-01 00:00:00Z])
-    assert zone.meta_zone == "America_Central"
-    assert zone.names.generic == "Central Time"
-    assert zone.names.standard == "Central Standard Time"
-    assert zone.names.daylight == "Central Daylight Time"
-    assert zone.names.current == "Central Standard Time"
+    %{meta_zone: meta_zone} = zone = Zonex.get!("America/Chicago", ~U[2022-01-01 00:00:00Z])
+    assert meta_zone.name == "America_Central"
+    assert meta_zone.territory == "001"
+    assert meta_zone.long.generic == "Central Time"
+    assert meta_zone.long.standard == "Central Standard Time"
+    assert meta_zone.long.daylight == "Central Daylight Time"
+    assert meta_zone.long.current == "Central Standard Time"
+    assert meta_zone.short.generic == "CT"
+    assert meta_zone.short.standard == "CST"
+    assert meta_zone.short.daylight == "CDT"
+    assert meta_zone.short.current == "CST"
     refute zone.dst
 
     # In DST...
     zone = Zonex.get!("America/Chicago", ~U[2022-06-01 00:00:00Z])
-    assert zone.names.current == "Central Daylight Time"
+    assert zone.meta_zone.long.current == "Central Daylight Time"
+    assert zone.meta_zone.short.current == "CDT"
     assert zone.dst
 
     # On the boundary, uses UTC time...
     zone = Zonex.get!("Europe/Copenhagen", ~U[2015-10-25 02:40:00Z])
-    assert zone.names.current == "Central European Standard Time"
+    assert zone.meta_zone.long.current == "Central European Standard Time"
     refute zone.dst
   end
 
   test "includes a generic long name for all listed zones" do
-    Enum.each(listed_zones(), fn %{name: name, names: %{generic: generic}} ->
+    Enum.each(listed_zones(), fn %{name: name, meta_zone: %{long: %{generic: generic}}} ->
       assert is_binary(generic), "#{name} doesn't have a generic long name"
     end)
   end

@@ -7,7 +7,7 @@ defmodule Zonex.MetaZonesTest do
   alias Zonex.MetaZones.Rule
 
   test "builds a rule mapping" do
-    assert MetaZones.time_zone_rules()["Europe/Vilnius"] == [
+    assert MetaZones.rules_for_zone("Europe/Vilnius") == [
              %Rule{
                from: ~U[0000-01-01 00:00:00Z],
                mzone: "Moscow",
@@ -32,8 +32,9 @@ defmodule Zonex.MetaZonesTest do
   end
 
   test "fetches the right meta zone based on range" do
-    assert MetaZones.get("Europe/Vilnius", ~U[1989-03-26 23:00:00Z]) == {:ok, "Europe_Eastern"}
-    assert MetaZones.get("Europe/Vilnius", ~U[1998-03-30 23:00:00Z]) == {:ok, "Europe_Central"}
-    assert MetaZones.get("Europe/Vilnius", ~U[1990-11-01 23:00:00Z]) == {:ok, "Europe_Eastern"}
+    rules = MetaZones.rules_for_zone("Europe/Vilnius")
+    assert MetaZones.resolve(rules, ~U[1989-03-26 23:00:00Z]) == {:ok, "Europe_Eastern"}
+    assert MetaZones.resolve(rules, ~U[1998-03-30 23:00:00Z]) == {:ok, "Europe_Central"}
+    assert MetaZones.resolve(rules, ~U[1990-11-01 23:00:00Z]) == {:ok, "Europe_Eastern"}
   end
 end

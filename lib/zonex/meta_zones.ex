@@ -7,7 +7,40 @@ defmodule Zonex.MetaZones do
   import SweetXml
   alias Zonex.MetaZones.Rule
 
-  @type meta_zone :: String.t()
+  @type meta_zone_name :: String.t()
+  @type territory :: String.t()
+
+  @doc """
+  Lists the rules for a given time zone.
+  """
+  @spec rules_for_zone(zone_name :: Calendar.time_zone()) :: [Rule.t()]
+  def rules_for_zone(zone_name) do
+    rules()[zone_name] || []
+  end
+
+  @doc """
+  Resolves the correct meta zone name at a particular instant.
+  """
+  @spec resolve(rules :: [Rule.t()], instant :: DateTime.t()) ::
+          {:ok, meta_zone_name()} | {:error, term()}
+  def resolve([_ | _] = rules, %DateTime{} = instant) do
+    rules
+    |> Enum.find(&between?(&1, instant))
+    |> then(fn
+      %Rule{mzone: mzone} -> {:ok, mzone}
+      _ -> {:error, :meta_zone_not_found}
+    end)
+  end
+
+  def resolve(_, _), do: {:error, :meta_zone_not_found}
+
+  @doc """
+  Gets the territory for a time zone.
+  """
+  @spec territory(zone_name :: Calendar.time_zone()) :: territory()
+  def territory(zone_name) do
+    territories()[zone_name] || "ZZ"
+  end
 
   # Client
 
@@ -18,56 +51,37 @@ defmodule Zonex.MetaZones do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
-  @doc """
-  A mapping of Olson time zone names to meta zone rules.
-  """
-  @spec time_zone_rules() :: %{Calendar.time_zone() => [Rule.t()]}
-  def time_zone_rules do
-    GenServer.call(__MODULE__, :time_zone_rules)
-  end
-
-  @doc """
-  Fetches the meta zone for a time zone at a particular instant.
-  """
-  @spec get(time_zone :: Calendar.time_zone(), instant :: DateTime.t()) ::
-          {:ok, meta_zone()} | {:error, :meta_zone_not_found}
-  def get(time_zone, %DateTime{} = instant) do
-    case time_zone_rules()[time_zone] do
-      [_ | _] = rules -> meta_zone_at(rules, instant)
-      _ -> {:error, :meta_zone_not_found}
-    end
-  end
-
-  defp meta_zone_at(rules, instant) do
-    rules
-    |> Enum.find(fn rule ->
-      DateTime.compare(instant, rule.from) in [:gt, :eq] and
-        DateTime.compare(instant, rule.to) in [:lt]
-    end)
-    |> then(fn
-      %Rule{mzone: mzone} -> {:ok, mzone}
-      _ -> {:error, :meta_zone_not_found}
-    end)
-  end
-
   # Server
 
   @impl GenServer
   def init(_arg) do
     path = Application.app_dir(:zonex, "priv/metaZones.xml")
     contents = File.read!(path)
-    {:ok, %{rules: parse_rules(contents)}}
+    {:ok, %{rules: parse_rules(contents), territories: parse_territories(contents)}}
   end
 
   @impl GenServer
-  def handle_call(:time_zone_rules, _from, state) do
+  def handle_call(:rules, _from, state) do
     {:reply, state[:rules], state}
+  end
+
+  @impl GenServer
+  def handle_call(:territories, _from, state) do
+    {:reply, state[:territories], state}
   end
 
   # Private helpers
 
-  defp parse_rules(contents) do
-    contents
+  defp rules do
+    GenServer.call(__MODULE__, :rules)
+  end
+
+  defp territories do
+    GenServer.call(__MODULE__, :territories)
+  end
+
+  defp parse_rules(xml) do
+    xml
     |> parse_xml()
     |> xpath(~x"//supplementalData/metaZones/metazoneInfo/timezone"el,
       name: ~x"./@type"s,
@@ -79,6 +93,17 @@ defmodule Zonex.MetaZones do
       ]
     )
     |> Enum.map(&{&1[:name], parse_rule_list(&1[:rules])})
+    |> Map.new()
+  end
+
+  defp parse_territories(xml) do
+    xml
+    |> parse_xml()
+    |> xpath(~x"//supplementalData/metaZones/mapTimezones/mapZone"el,
+      type: ~x"./@type"s,
+      territory: ~x"./@territory"s
+    )
+    |> Enum.map(&{&1[:type], &1[:territory]})
     |> Map.new()
   end
 
@@ -116,5 +141,10 @@ defmodule Zonex.MetaZones do
 
   defp end_of_time do
     ~U[9999-01-01 00:00:00Z]
+  end
+
+  defp between?(rule, instant) do
+    DateTime.compare(instant, rule.from) in [:gt, :eq] and
+      DateTime.compare(instant, rule.to) in [:lt]
   end
 end
