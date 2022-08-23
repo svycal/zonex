@@ -115,7 +115,12 @@ defmodule Zonex.MetaZones do
     )
     |> Enum.reduce(%{}, fn %{type: type, territory: territory}, acc ->
       territories = Map.get(acc, type, [])
-      Map.put(acc, type, [territory | territories])
+
+      if territory in territories do
+        acc
+      else
+        Map.put(acc, type, [territory | territories])
+      end
     end)
   end
 
