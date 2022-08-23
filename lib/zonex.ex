@@ -77,12 +77,15 @@ defmodule Zonex do
     dst = dst?(name, datetime)
     maybe_meta_zone = build_meta_zone(name, datetime, dst, opts)
     maybe_windows_zone = build_windows_zone(name)
+    long_name = build_long_name(name, maybe_meta_zone, maybe_windows_zone)
+    long_name_with_city = build_long_name_with_city(long_name, maybe_meta_zone)
 
     %Zone{
       name: name,
       meta_zone: maybe_meta_zone,
       windows_zone: maybe_windows_zone,
-      long_name: build_long_name(name, maybe_meta_zone, maybe_windows_zone),
+      long_name: long_name,
+      long_name_with_city: long_name_with_city,
       abbreviation: zone.abbreviation,
       aliases: Map.get(aliases, name, []),
       zone: zone,
@@ -95,10 +98,22 @@ defmodule Zonex do
     }
   end
 
-  defp build_long_name(_, %{long: %{current: value}}, _), do: value
-  defp build_long_name(_, %{long: %{generic: value}}, _), do: value
-  defp build_long_name(_, _, %{name: value}), do: value
+  defp build_long_name(_, %{long: %{current: name}}, _)
+       when is_binary(name),
+       do: name
+
+  defp build_long_name(_, %{long: %{generic: name}}, _)
+       when is_binary(name),
+       do: name
+
+  defp build_long_name(_, _, %{name: name}) when is_binary(name), do: name
   defp build_long_name(name, _, _), do: name
+
+  defp build_long_name_with_city(name, %{exemplar_city: city})
+       when is_binary(city),
+       do: "#{name} (#{city})"
+
+  defp build_long_name_with_city(name, _), do: name
 
   defp dst?(zone_name, datetime) do
     time_point = elem(DateTime.to_gregorian_seconds(datetime), 0)
@@ -154,11 +169,7 @@ defmodule Zonex do
   defp current_name(%{generic: generic}, _), do: generic
 
   defp listed?("Etc/" <> _, _), do: false
-
-  defp listed?(name, %{long: %{generic: generic}}) when is_binary(generic) do
-    !legacy?(name)
-  end
-
+  defp listed?(_, %{territories: territories}), do: "001" in territories
   defp listed?(_, _), do: false
 
   # Logic borrowed from Timex inspect logic:

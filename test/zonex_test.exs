@@ -78,6 +78,7 @@ defmodule ZonexTest do
     # Current meta zone name if available
     zone = Zonex.get!("America/Chicago", ~U[2022-01-01 00:00:00Z])
     assert zone.long_name == "Central Standard Time"
+    assert zone.long_name_with_city == "Central Standard Time (Chicago)"
 
     zone = Zonex.get!("Europe/London", ~U[2022-06-01 00:00:00Z])
     assert zone.long_name == "British Summer Time"
@@ -89,6 +90,7 @@ defmodule ZonexTest do
     # Generic name for UTC
     zone = Zonex.get!("Etc/UTC", ~U[2022-01-01 00:00:00Z])
     assert zone.long_name == "Coordinated Universal Time"
+    assert zone.long_name_with_city == "Coordinated Universal Time"
   end
 
   test "accepts a locale option" do
@@ -99,9 +101,9 @@ defmodule ZonexTest do
            } = meta_zone
   end
 
-  test "includes a generic long name for all listed zones" do
-    Enum.each(listed_zones(), fn %{name: name, meta_zone: %{long: %{generic: generic}}} ->
-      assert is_binary(generic), "#{name} doesn't have a generic long name"
+  test "all listed zones are designated as 'world' territories" do
+    Enum.each(listed_zones(), fn %{name: name, meta_zone: %{territories: territories}} ->
+      assert "001" in territories, "#{name} isn't a 'world' territory"
     end)
   end
 
