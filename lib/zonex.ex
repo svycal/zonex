@@ -191,6 +191,6 @@ defmodule Zonex do
   end
 
   defp tz_name_backend do
-    String.to_existing_atom("Elixir.#{inspect(cldr_backend())}.TimeZoneName")
+    Module.concat(cldr_backend(), TimeZoneName)
   end
 end
