@@ -7,6 +7,7 @@ defmodule Zonex do
   alias Zonex.MetaZones
   alias Zonex.WindowsZones
   alias Zonex.Zone
+  alias Zonex.Zone.Names
 
   @doc """
   Lists all time zones.
@@ -74,31 +75,34 @@ defmodule Zonex do
 
     meta_zone_name = lookup_meta_zone_name(name, datetime)
 
-    generic_long_name =
+    long =
       case lookup_meta_zone(meta_zone_name) do
-        {:ok, meta_zone} -> meta_zone.long.generic
+        {:ok, meta_zone} -> meta_zone.long
         _ -> nil
       end
 
-    names = %{
-      generic_long_name: generic_long_name,
-      windows_name: windows_name,
-      name: name,
-      formatted_offset: formatted_offset
+    names = %Names{
+      generic: generic_name(long),
+      daylight: daylight_name(long),
+      standard: standard_name(long),
+      # TODO
+      current: standard_name(long),
+      windows: windows_name
     }
 
     %Zone{
       name: name,
+      names: names,
       meta_zone: meta_zone_name,
       aliases: Map.get(aliases, name, []),
-      generic_long_name: generic_long_name,
-      windows_name: windows_name,
       zone: zone,
       offset: offset,
       formatted_offset: formatted_offset,
       abbreviation: zone.abbreviation,
       listed: listed?(name, names),
-      legacy: legacy?(name)
+      legacy: legacy?(name),
+      # TODO
+      dst: false
     }
   end
 
@@ -117,10 +121,19 @@ defmodule Zonex do
 
   defp lookup_meta_zone(_), do: {:error, :meta_zone_not_found}
 
+  defp generic_name(%{generic: generic}), do: generic
+  defp generic_name(_), do: nil
+
+  defp standard_name(%{standard: standard}), do: standard
+  defp standard_name(_), do: nil
+
+  defp daylight_name(%{daylight: daylight}), do: daylight
+  defp daylight_name(_), do: nil
+
   defp listed?("Etc/" <> _, _), do: false
 
   defp listed?(name, names) do
-    !legacy?(name) && names[:generic_long_name]
+    !legacy?(name) && names.generic
   end
 
   # Logic borrowed from Timex inspect logic:

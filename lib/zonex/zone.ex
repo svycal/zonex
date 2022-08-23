@@ -5,18 +5,34 @@ defmodule Zonex.Zone do
 
   alias Zonex.MetaZones
 
+  defmodule Names do
+    @moduledoc """
+    Various names for time zones.
+    """
+
+    defstruct [:generic, :daylight, :standard, :current, :windows]
+
+    @type t :: %__MODULE__{
+            generic: String.t() | nil,
+            daylight: String.t() | nil,
+            standard: String.t() | nil,
+            current: String.t() | nil,
+            windows: String.t() | nil
+          }
+  end
+
   @enforce_keys [
     :name,
     :meta_zone,
+    :names,
     :aliases,
-    :generic_long_name,
-    :windows_name,
     :zone,
     :offset,
     :formatted_offset,
     :abbreviation,
     :listed,
-    :legacy
+    :legacy,
+    :dst
   ]
   defstruct @enforce_keys
 
@@ -24,13 +40,13 @@ defmodule Zonex.Zone do
           name: Calendar.time_zone(),
           meta_zone: MetaZones.meta_zone(),
           aliases: [Calendar.time_zone()],
-          generic_long_name: String.t() | nil,
-          windows_name: String.t() | nil,
+          names: Names.t(),
           zone: Timex.TimezoneInfo.t(),
           offset: integer(),
           formatted_offset: String.t(),
           abbreviation: String.t(),
           listed: boolean(),
-          legacy: boolean()
+          legacy: boolean(),
+          dst: boolean()
         }
 end

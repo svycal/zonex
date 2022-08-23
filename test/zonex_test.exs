@@ -51,12 +51,14 @@ defmodule ZonexTest do
   test "includes meta zone info" do
     zone = Zonex.get!("America/Chicago", ~U[2022-01-01 00:00:00Z])
     assert zone.meta_zone == "America_Central"
-    assert zone.generic_long_name == "Central Time"
+    assert zone.names.generic == "Central Time"
+    assert zone.names.standard == "Central Standard Time"
+    assert zone.names.daylight == "Central Daylight Time"
   end
 
   test "includes a generic long name for all listed zones" do
-    Enum.each(listed_zones(), fn %{name: name, generic_long_name: generic_long_name} ->
-      assert is_binary(generic_long_name), "#{name} doesn't have a generic long name"
+    Enum.each(listed_zones(), fn %{name: name, names: %{generic: generic}} ->
+      assert is_binary(generic), "#{name} doesn't have a generic long name"
     end)
   end
 
