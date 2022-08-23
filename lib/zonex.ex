@@ -72,6 +72,7 @@ defmodule Zonex do
     zone = Timex.Timezone.get(name, datetime)
     offset = Timex.Timezone.total_offset(zone)
     formatted_offset = "GMT#{format_offset(offset)}"
+    dst = dst?(name, datetime)
 
     meta_zone_name = lookup_meta_zone_name(name, datetime)
 
@@ -85,8 +86,7 @@ defmodule Zonex do
       generic: generic_name(long),
       daylight: daylight_name(long),
       standard: standard_name(long),
-      # TODO
-      current: standard_name(long),
+      current: current_name(long, dst),
       windows: windows_name
     }
 
@@ -101,9 +101,17 @@ defmodule Zonex do
       abbreviation: zone.abbreviation,
       listed: listed?(name, names),
       legacy: legacy?(name),
-      # TODO
-      dst: false
+      dst: dst
     }
+  end
+
+  defp dst?(zone_name, datetime) do
+    time_point = elem(DateTime.to_gregorian_seconds(datetime), 0)
+
+    case Tzdata.periods_for_time(zone_name, time_point, :utc) do
+      [period | _] -> period[:std_off] != 0
+      _ -> false
+    end
   end
 
   defp lookup_meta_zone_name(name, datetime) do
@@ -129,6 +137,10 @@ defmodule Zonex do
 
   defp daylight_name(%{daylight: daylight}), do: daylight
   defp daylight_name(_), do: nil
+
+  defp current_name(%{daylight: daylight}, true), do: daylight
+  defp current_name(%{standard: standard}, false), do: standard
+  defp current_name(_, _), do: nil
 
   defp listed?("Etc/" <> _, _), do: false
 

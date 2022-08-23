@@ -54,6 +54,18 @@ defmodule ZonexTest do
     assert zone.names.generic == "Central Time"
     assert zone.names.standard == "Central Standard Time"
     assert zone.names.daylight == "Central Daylight Time"
+    assert zone.names.current == "Central Standard Time"
+    refute zone.dst
+
+    # In DST...
+    zone = Zonex.get!("America/Chicago", ~U[2022-06-01 00:00:00Z])
+    assert zone.names.current == "Central Daylight Time"
+    assert zone.dst
+
+    # On the boundary, uses UTC time...
+    zone = Zonex.get!("Europe/Copenhagen", ~U[2015-10-25 02:40:00Z])
+    assert zone.names.current == "Central European Standard Time"
+    refute zone.dst
   end
 
   test "includes a generic long name for all listed zones" do
