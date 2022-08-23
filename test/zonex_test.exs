@@ -74,6 +74,23 @@ defmodule ZonexTest do
     refute zone.dst
   end
 
+  test "determines the best long name" do
+    # Current meta zone name if available
+    zone = Zonex.get!("America/Chicago", ~U[2022-01-01 00:00:00Z])
+    assert zone.long_name == "Central Standard Time"
+
+    zone = Zonex.get!("Europe/London", ~U[2022-06-01 00:00:00Z])
+    assert zone.long_name == "British Summer Time"
+
+    # Olson name if meta zone is not available
+    zone = Zonex.get!("America/Argentina/Mendoza", ~U[2022-06-01 00:00:00Z])
+    assert zone.long_name == "America/Argentina/Mendoza"
+
+    # Generic name for UTC
+    zone = Zonex.get!("Etc/UTC", ~U[2022-01-01 00:00:00Z])
+    assert zone.long_name == "Coordinated Universal Time"
+  end
+
   test "accepts a locale option" do
     %{meta_zone: meta_zone} = Zonex.get!("America/Chicago", ~U[2022-01-01 00:00:00Z], locale: :fr)
 

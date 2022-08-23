@@ -75,23 +75,30 @@ defmodule Zonex do
     offset = Timex.Timezone.total_offset(zone)
     formatted_offset = "GMT#{format_offset(offset)}"
     dst = dst?(name, datetime)
-    meta_zone = build_meta_zone(name, datetime, dst, opts)
+    maybe_meta_zone = build_meta_zone(name, datetime, dst, opts)
+    maybe_windows_zone = build_windows_zone(name)
 
     %Zone{
       name: name,
-      meta_zone: meta_zone,
-      windows_zone: build_windows_zone(name),
+      meta_zone: maybe_meta_zone,
+      windows_zone: maybe_windows_zone,
+      long_name: build_long_name(name, maybe_meta_zone, maybe_windows_zone),
+      abbreviation: zone.abbreviation,
       aliases: Map.get(aliases, name, []),
       zone: zone,
       offset: offset,
       formatted_offset: formatted_offset,
-      abbreviation: zone.abbreviation,
-      listed: listed?(name, meta_zone),
+      listed: listed?(name, maybe_meta_zone),
       legacy: legacy?(name),
       dst: dst,
       canonical: true
     }
   end
+
+  defp build_long_name(_, %{long: %{current: value}}, _), do: value
+  defp build_long_name(_, %{long: %{generic: value}}, _), do: value
+  defp build_long_name(_, _, %{name: value}), do: value
+  defp build_long_name(name, _, _), do: name
 
   defp dst?(zone_name, datetime) do
     time_point = elem(DateTime.to_gregorian_seconds(datetime), 0)
