@@ -51,7 +51,7 @@ defmodule ZonexTest do
   test "includes meta zone info" do
     %{meta_zone: meta_zone} = zone = Zonex.get!("America/Chicago", ~U[2022-01-01 00:00:00Z])
     assert meta_zone.name == "America_Central"
-    assert meta_zone.territory == "001"
+    assert meta_zone.territories == ["001"]
     assert meta_zone.long.generic == "Central Time"
     assert meta_zone.long.standard == "Central Standard Time"
     assert meta_zone.long.daylight == "Central Daylight Time"

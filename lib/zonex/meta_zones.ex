@@ -14,6 +14,16 @@ defmodule Zonex.MetaZones do
   Lists the rules for a given time zone.
   """
   @spec rules_for_zone(zone_name :: Calendar.time_zone()) :: [Rule.t()]
+  def rules_for_zone("Etc/UTC") do
+    [
+      %Rule{
+        from: beginning_of_time(),
+        to: end_of_time(),
+        mzone: "GMT"
+      }
+    ]
+  end
+
   def rules_for_zone(zone_name) do
     rules()[zone_name] || []
   end
@@ -37,9 +47,9 @@ defmodule Zonex.MetaZones do
   @doc """
   Gets the territory for a time zone.
   """
-  @spec territory(zone_name :: Calendar.time_zone()) :: territory()
-  def territory(zone_name) do
-    territories()[zone_name] || "ZZ"
+  @spec territories(zone_name :: Calendar.time_zone()) :: [territory()]
+  def territories(zone_name) do
+    territories_map()[zone_name] || []
   end
 
   # Client
@@ -76,7 +86,7 @@ defmodule Zonex.MetaZones do
     GenServer.call(__MODULE__, :rules)
   end
 
-  defp territories do
+  defp territories_map do
     GenServer.call(__MODULE__, :territories)
   end
 
@@ -103,8 +113,10 @@ defmodule Zonex.MetaZones do
       type: ~x"./@type"s,
       territory: ~x"./@territory"s
     )
-    |> Enum.map(&{&1[:type], &1[:territory]})
-    |> Map.new()
+    |> Enum.reduce(%{}, fn %{type: type, territory: territory}, acc ->
+      territories = Map.get(acc, type, [])
+      Map.put(acc, type, [territory | territories])
+    end)
   end
 
   defp parse_xml(xml) do

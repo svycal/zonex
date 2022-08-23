@@ -5,7 +5,7 @@ defmodule Zonex.MetaZones.MetaZone do
 
   alias Zonex.MetaZones
 
-  defstruct [:name, :territory, :long, :short]
+  defstruct [:name, :territories, :long, :short, :exemplar_city]
 
   defmodule Variants do
     @moduledoc """
@@ -24,8 +24,9 @@ defmodule Zonex.MetaZones.MetaZone do
 
   @type t :: %__MODULE__{
           name: MetaZones.meta_zone(),
-          territory: MetaZones.territory(),
+          territories: [MetaZones.territory()],
           long: Variants.t() | nil,
-          short: Variants.t() | nil
+          short: Variants.t() | nil,
+          exemplar_city: String.t() | nil
         }
 end

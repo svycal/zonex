@@ -113,12 +113,13 @@ defmodule Zonex do
     rules = MetaZones.rules_for_zone(zone_name)
 
     with {:ok, mzone} <- MetaZones.resolve(rules, datetime),
-         {:ok, info} <- meta_zone_info(mzone) do
+         {:ok, info} <- name_info(zone_name, mzone) do
       %MetaZone{
         name: mzone,
-        territory: MetaZones.territory(zone_name),
+        territories: MetaZones.territories(zone_name),
         long: build_name_variants(info.long, dst),
-        short: build_name_variants(info.short, dst)
+        short: build_name_variants(info.short, dst),
+        exemplar_city: info.exemplar_city
       }
     else
       _ -> nil
@@ -136,13 +137,11 @@ defmodule Zonex do
 
   defp build_name_variants(_, _), do: nil
 
-  defp meta_zone_info(type) when is_binary(type) do
-    type
-    |> String.downcase()
-    |> tz_name_backend().metazone_for_type()
+  defp name_info(zone_name, type) when is_binary(type) do
+    tz_name_backend().resolve(zone_name, String.downcase(type))
   end
 
-  defp meta_zone_info(_), do: {:error, :meta_zone_not_found}
+  defp name_info(_, _), do: {:error, :meta_zone_not_found}
 
   defp current_name(%{daylight: daylight}, true), do: daylight
   defp current_name(%{standard: standard}, false), do: standard
