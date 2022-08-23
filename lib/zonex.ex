@@ -103,6 +103,10 @@ defmodule Zonex do
        when is_binary(name),
        do: name
 
+  defp build_generic_long_name(_, %{long: %{standard: name}}, _)
+       when is_binary(name),
+       do: name
+
   defp build_generic_long_name(_, _, %{name: name}) when is_binary(name), do: name
   defp build_generic_long_name(name, _, _), do: name
 
