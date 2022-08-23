@@ -48,9 +48,43 @@ defmodule ZonexTest do
     assert Zonex.get!("America/Chicago", ~U[2022-06-01 00:00:00Z]).formatted_offset == "GMT-05:00"
   end
 
-  test "includes a common name for all listed zones" do
-    Enum.each(listed_zones(), fn %{common_name: common_name} ->
-      assert is_binary(common_name)
+  test "includes meta zone info" do
+    %{meta_zone: meta_zone} = zone = Zonex.get!("America/Chicago", ~U[2022-01-01 00:00:00Z])
+    assert meta_zone.name == "America_Central"
+    assert meta_zone.territories == ["001"]
+    assert meta_zone.long.generic == "Central Time"
+    assert meta_zone.long.standard == "Central Standard Time"
+    assert meta_zone.long.daylight == "Central Daylight Time"
+    assert meta_zone.long.current == "Central Standard Time"
+    assert meta_zone.short.generic == "CT"
+    assert meta_zone.short.standard == "CST"
+    assert meta_zone.short.daylight == "CDT"
+    assert meta_zone.short.current == "CST"
+    refute zone.dst
+
+    # In DST...
+    zone = Zonex.get!("America/Chicago", ~U[2022-06-01 00:00:00Z])
+    assert zone.meta_zone.long.current == "Central Daylight Time"
+    assert zone.meta_zone.short.current == "CDT"
+    assert zone.dst
+
+    # On the boundary, uses UTC time...
+    zone = Zonex.get!("Europe/Copenhagen", ~U[2015-10-25 02:40:00Z])
+    assert zone.meta_zone.long.current == "Central European Standard Time"
+    refute zone.dst
+  end
+
+  test "accepts a locale option" do
+    %{meta_zone: meta_zone} = Zonex.get!("America/Chicago", ~U[2022-01-01 00:00:00Z], locale: :fr)
+
+    assert %{
+             long: %{generic: "heure du centre nord-américain"}
+           } = meta_zone
+  end
+
+  test "includes a generic long name for all listed zones" do
+    Enum.each(listed_zones(), fn %{name: name, meta_zone: %{long: %{generic: generic}}} ->
+      assert is_binary(generic), "#{name} doesn't have a generic long name"
     end)
   end
 

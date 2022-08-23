@@ -4,31 +4,32 @@ defmodule Zonex do
   """
 
   alias Zonex.Aliases
-  alias Zonex.WindowsZones
   alias Zonex.Zone
-
-  @standard_names WindowsZones.standard_names()
-  @common_names WindowsZones.common_names()
+  alias Zonex.MetaZones
+  alias Zonex.MetaZones.MetaZone
+  alias Zonex.MetaZones.MetaZone.Variants
+  alias Zonex.WindowsZones
+  alias Zonex.WindowsZones.WindowsZone
 
   @doc """
   Lists all time zones.
   """
-  @spec list(datetime :: DateTime.t()) :: [Zone.t()]
-  def list(%DateTime{} = datetime) do
+  @spec list(datetime :: DateTime.t(), opts :: Keyword.t()) :: [Zone.t()]
+  def list(%DateTime{} = datetime, opts \\ []) do
     aliases = Aliases.forward_mapping()
 
     Tzdata.canonical_zone_list()
-    |> Enum.map(&cast(&1, datetime, aliases))
+    |> Enum.map(&cast(&1, datetime, aliases, opts))
   end
 
   @doc """
   Gets a zone for a given Olson time zone name.
   """
-  @spec get(name :: String.t(), datetime :: DateTime.t()) ::
+  @spec get(name :: String.t(), datetime :: DateTime.t(), opts :: Keyword.t()) ::
           {:ok, Zone.t()} | {:error, :zone_not_found}
-  def get(name, %DateTime{} = datetime) do
+  def get(name, %DateTime{} = datetime, opts \\ []) do
     if Tzdata.canonical_zone?(name) do
-      {:ok, cast(name, datetime, Aliases.forward_mapping())}
+      {:ok, cast(name, datetime, Aliases.forward_mapping(), opts)}
     else
       datetime
       |> list()
@@ -43,9 +44,10 @@ defmodule Zonex do
   @doc """
   Gets a zone for a given Olson time zone name and raises if not found.
   """
-  @spec get!(name :: String.t(), datetime :: DateTime.t()) :: Zone.t() | no_return()
-  def get!(name, %DateTime{} = datetime) do
-    case get(name, datetime) do
+  @spec get!(name :: String.t(), datetime :: DateTime.t(), opts :: Keyword.t()) ::
+          Zone.t() | no_return()
+  def get!(name, %DateTime{} = datetime, opts \\ []) do
+    case get(name, datetime, opts) do
       {:ok, zone} -> zone
       _ -> raise "zone not found"
     end
@@ -68,59 +70,89 @@ defmodule Zonex do
     !String.contains?(name, "/")
   end
 
-  defp cast(name, datetime, aliases) do
-    standard_name = @standard_names[name]
-    common_name = @common_names[standard_name]
+  defp cast(name, datetime, aliases, opts) do
     zone = Timex.Timezone.get(name, datetime)
     offset = Timex.Timezone.total_offset(zone)
     formatted_offset = "GMT#{format_offset(offset)}"
-
-    names = %{
-      common_name: common_name,
-      standard_name: standard_name,
-      name: name,
-      formatted_offset: formatted_offset
-    }
+    dst = dst?(name, datetime)
+    meta_zone = build_meta_zone(name, datetime, dst, opts)
 
     %Zone{
       name: name,
+      meta_zone: meta_zone,
+      windows_zone: build_windows_zone(name),
       aliases: Map.get(aliases, name, []),
-      standard_name: standard_name,
-      common_name: common_name,
-      friendly_name: friendly_name(names),
-      friendly_name_with_offset: friendly_name_with_offset(names),
       zone: zone,
       offset: offset,
       formatted_offset: formatted_offset,
       abbreviation: zone.abbreviation,
-      listed: listed?(name),
-      legacy: legacy?(name)
+      listed: listed?(name, meta_zone),
+      legacy: legacy?(name),
+      dst: dst,
+      canonical: true
     }
   end
 
-  defp friendly_name(%{common_name: common_name}) when is_binary(common_name) do
-    common_name
+  defp dst?(zone_name, datetime) do
+    time_point = elem(DateTime.to_gregorian_seconds(datetime), 0)
+
+    case Tzdata.periods_for_time(zone_name, time_point, :utc) do
+      [period | _] -> period[:std_off] != 0
+      _ -> false
+    end
   end
 
-  defp friendly_name(%{standard_name: standard_name}) when is_binary(standard_name) do
-    standard_name
+  defp build_windows_zone(zone_name) do
+    if name = WindowsZones.standard_name(zone_name) do
+      %WindowsZone{name: name}
+    else
+      nil
+    end
   end
 
-  defp friendly_name(%{name: name}) do
-    name
-    |> String.replace(~r/\//, " - ", global: true)
-    |> String.replace(~r/_/, " ", global: true)
+  defp build_meta_zone(zone_name, datetime, dst, opts) do
+    rules = MetaZones.rules_for_zone(zone_name)
+
+    with {:ok, mzone} <- MetaZones.resolve(rules, datetime),
+         {:ok, info} <- name_info(zone_name, mzone, opts) do
+      %MetaZone{
+        name: mzone,
+        territories: MetaZones.territories(zone_name),
+        long: build_name_variants(info.long, dst),
+        short: build_name_variants(info.short, dst),
+        exemplar_city: info.exemplar_city
+      }
+    else
+      _ -> nil
+    end
   end
 
-  defp friendly_name_with_offset(%{formatted_offset: offset} = names) do
-    "(#{offset}) #{friendly_name(names)}"
+  defp build_name_variants(%_{} = data, dst) do
+    %Variants{
+      generic: data.generic,
+      standard: data.standard,
+      daylight: data.daylight,
+      current: current_name(data, dst)
+    }
   end
 
-  defp listed?("Etc/" <> _), do: false
+  defp build_name_variants(_, _), do: nil
 
-  defp listed?(name) do
-    !legacy?(name) && Map.has_key?(@standard_names, name)
+  defp name_info(zone_name, mzone, opts) do
+    tz_name_backend().resolve(zone_name, String.downcase(mzone), opts)
   end
+
+  defp current_name(%{daylight: daylight}, true) when is_binary(daylight), do: daylight
+  defp current_name(%{standard: standard}, false) when is_binary(standard), do: standard
+  defp current_name(%{generic: generic}, _), do: generic
+
+  defp listed?("Etc/" <> _, _), do: false
+
+  defp listed?(name, %{long: %{generic: generic}}) when is_binary(generic) do
+    !legacy?(name)
+  end
+
+  defp listed?(_, _), do: false
 
   # Logic borrowed from Timex inspect logic:
   # https://github.com/bitwalker/timex/blob/45424fa293066b210eaf94dd650707343583d085/lib/timezone/inspect.ex#L6
@@ -153,5 +185,13 @@ defmodule Zonex do
     else
       number_str
     end
+  end
+
+  defp cldr_backend do
+    Application.fetch_env!(:zonex, :cldr_backend)
+  end
+
+  defp tz_name_backend do
+    Module.concat(cldr_backend(), TimeZoneName)
   end
 end

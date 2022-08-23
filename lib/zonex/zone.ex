@@ -3,34 +3,37 @@ defmodule Zonex.Zone do
   An aggregated time zone.
   """
 
+  alias Zonex.MetaZones.MetaZone
+  alias Zonex.WindowsZones.WindowsZone
+
   @enforce_keys [
     :name,
+    :meta_zone,
+    :windows_zone,
     :aliases,
-    :standard_name,
-    :common_name,
-    :friendly_name,
-    :friendly_name_with_offset,
     :zone,
     :offset,
     :formatted_offset,
     :abbreviation,
     :listed,
-    :legacy
+    :legacy,
+    :dst,
+    :canonical
   ]
   defstruct @enforce_keys
 
   @type t :: %__MODULE__{
           name: Calendar.time_zone(),
+          meta_zone: MetaZone.t() | nil,
+          windows_zone: WindowsZone.t() | nil,
           aliases: [Calendar.time_zone()],
-          standard_name: String.t() | nil,
-          common_name: String.t() | nil,
-          friendly_name: String.t(),
-          friendly_name_with_offset: String.t(),
           zone: Timex.TimezoneInfo.t(),
           offset: integer(),
           formatted_offset: String.t(),
           abbreviation: String.t(),
           listed: boolean(),
-          legacy: boolean()
+          legacy: boolean(),
+          dst: boolean(),
+          canonical: boolean()
         }
 end
