@@ -30,8 +30,7 @@ defmodule Zonex.MixProject do
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:ex_cldr, "~> 2.33", only: [:test]},
-      {:ex_cldr_time_zone_names,
-       only: [:test], git: "https://github.com/svycal/cldr_time_zone_names.git", ref: "9253af8"}
+      {:ex_cldr_time_zone_names, "~> 0.1.0", only: [:test]}
     ]
   end
 
