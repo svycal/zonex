@@ -12,6 +12,8 @@ defmodule Zonex.MixProject do
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env()),
       name: "Zonex",
+      source_url: "https://github.com/svycal/zonex",
+      homepage_url: "https://github.com/svycal/zonex",
       docs: docs(),
       description: description(),
       package: package()
