@@ -1,4 +1,4 @@
-# Zonex
+# Zonex [![Hex Docs](https://img.shields.io/hexpm/v/zonex)](https://hexdocs.pm/zonex/readme.html)
 
 An Elixir library for compiling enriched time zone information.
 
