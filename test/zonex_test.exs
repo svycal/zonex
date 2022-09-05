@@ -38,8 +38,8 @@ defmodule ZonexTest do
   end
 
   test "formats offsets" do
-    assert Zonex.get!("America/Chicago", ~U[2022-01-01 00:00:00Z]).formatted_offset == "GMT-06:00"
-    assert Zonex.get!("America/Chicago", ~U[2022-06-01 00:00:00Z]).formatted_offset == "GMT-05:00"
+    assert Zonex.get!("America/Chicago", ~U[2022-01-01 00:00:00Z]).formatted_offset == "-06:00"
+    assert Zonex.get!("America/Chicago", ~U[2022-06-01 00:00:00Z]).formatted_offset == "-05:00"
   end
 
   test "includes meta zone info" do
@@ -115,9 +115,9 @@ defmodule ZonexTest do
     during_fallback = ~U[2018-10-28 00:30:00Z]
     after_fallback = ~U[2018-10-28 01:00:00Z]
 
-    assert Zonex.get!(name, before_fallback).formatted_offset == "GMT+02:00"
-    assert Zonex.get!(name, during_fallback).formatted_offset == "GMT+02:00"
-    assert Zonex.get!(name, after_fallback).formatted_offset == "GMT+01:00"
+    assert Zonex.get!(name, before_fallback).formatted_offset == "+02:00"
+    assert Zonex.get!(name, during_fallback).formatted_offset == "+02:00"
+    assert Zonex.get!(name, after_fallback).formatted_offset == "+01:00"
 
     # iex> DateTime.new(~D[2022-03-27], ~T[02:00:00], "Europe/Copenhagen")
     # {:gap, #DateTime<2022-03-27 01:59:59.999999+01:00 CET Europe/Copenhagen>,
@@ -126,9 +126,9 @@ defmodule ZonexTest do
     during_springfwd = ~U[2022-03-27 00:30:00Z]
     after_springfwd = ~U[2022-03-27 01:00:00Z]
 
-    assert Zonex.get!(name, before_springfwd).formatted_offset == "GMT+01:00"
-    assert Zonex.get!(name, during_springfwd).formatted_offset == "GMT+01:00"
-    assert Zonex.get!(name, after_springfwd).formatted_offset == "GMT+02:00"
+    assert Zonex.get!(name, before_springfwd).formatted_offset == "+01:00"
+    assert Zonex.get!(name, during_springfwd).formatted_offset == "+01:00"
+    assert Zonex.get!(name, after_springfwd).formatted_offset == "+02:00"
   end
 
   defp all_zones do

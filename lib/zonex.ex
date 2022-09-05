@@ -1,6 +1,6 @@
 defmodule Zonex do
   @moduledoc """
-  Documentation for `Zonex`.
+  Zonex is a library for compiling enriched time zone information.
   """
 
   alias Zonex.Aliases
@@ -12,28 +12,53 @@ defmodule Zonex do
   alias Zonex.WindowsZones.WindowsZone
 
   @doc """
-  Lists all time zones.
+  Lists all canonical time zones from the IANA database.
+
+  Since names and UTC offsets vary depending on time of year
+  (due to daylight saving time), you need to specify the `instant`
+  at which the time zone should be expressed.
+
+  ## Options
+
+  * `:locale` is any locale or locale name validated
+    by `Cldr.validate_locale/2`. The default is
+    `Cldr.get_locale()` which returns the locale
+    set for the current process
   """
-  @spec list(datetime :: DateTime.t(), opts :: Keyword.t()) :: [Zone.t()]
-  def list(%DateTime{} = datetime, opts \\ []) do
+  @spec list(instant :: DateTime.t(), opts :: Keyword.t()) :: [Zone.t()]
+  def list(%DateTime{} = instant, opts \\ []) do
     aliases = Aliases.forward_mapping()
 
     Tzdata.canonical_zone_list()
-    |> Enum.map(&cast(&1, datetime, aliases, opts))
+    |> Enum.map(&cast(&1, instant, aliases, opts))
   end
 
   @doc """
-  Gets a zone for a given Olson time zone name.
+  Gets a zone for a given IANA time zone name.
+
+  If the time zone is an alias (not canonical), the canonical zone
+  will be returned instead.
+
+  Since names and UTC offsets vary depending on time of year
+  (due to daylight saving time), you need to specify the `instant`
+  at which the time zone should be expressed.
+
+  ## Options
+
+  * `:locale` is any locale or locale name validated
+    by `Cldr.validate_locale/2`. The default is
+    `Cldr.get_locale()` which returns the locale
+    set for the current process
   """
-  @spec get(name :: String.t(), datetime :: DateTime.t(), opts :: Keyword.t()) ::
+  @spec get(zone_name :: String.t(), instant :: DateTime.t(), opts :: Keyword.t()) ::
           {:ok, Zone.t()} | {:error, :zone_not_found}
-  def get(name, %DateTime{} = datetime, opts \\ []) do
-    if Tzdata.canonical_zone?(name) do
-      {:ok, cast(name, datetime, Aliases.forward_mapping(), opts)}
+  def get(zone_name, %DateTime{} = instant, opts \\ []) do
+    if Tzdata.canonical_zone?(zone_name) do
+      {:ok, cast(zone_name, instant, Aliases.forward_mapping(), opts)}
     else
-      datetime
+      instant
       |> list()
-      |> Enum.find(&(name in &1.aliases))
+      |> Enum.find(&(zone_name in &1.aliases))
       |> after_find()
     end
   end
@@ -42,12 +67,26 @@ defmodule Zonex do
   defp after_find(_), do: {:error, :zone_not_found}
 
   @doc """
-  Gets a zone for a given Olson time zone name and raises if not found.
+  Gets a zone for a given IANA time zone name and raises if not found.
+
+  If the time zone is an alias (not canonical), the canonical zone
+  will be returned instead.
+
+  Since names and UTC offsets vary depending on time of year
+  (due to daylight saving time), you need to specify the `instant`
+  at which the time zone should be expressed.
+
+  ## Options
+
+  * `:locale` is any locale or locale name validated
+    by `Cldr.validate_locale/2`. The default is
+    `Cldr.get_locale()` which returns the locale
+    set for the current process
   """
-  @spec get!(name :: String.t(), datetime :: DateTime.t(), opts :: Keyword.t()) ::
+  @spec get!(zone_name :: String.t(), instant :: DateTime.t(), opts :: Keyword.t()) ::
           Zone.t() | no_return()
-  def get!(name, %DateTime{} = datetime, opts \\ []) do
-    case get(name, datetime, opts) do
+  def get!(zone_name, %DateTime{} = instant, opts \\ []) do
+    case get(zone_name, instant, opts) do
       {:ok, zone} -> zone
       _ -> raise "zone not found"
     end
@@ -62,18 +101,20 @@ defmodule Zonex do
       iex> Zonex.legacy?("WET")
       true
   """
-  @spec legacy?(Calendar.time_zone()) :: boolean()
-  def legacy?(name) do
+  @spec legacy?(zone_name :: Calendar.time_zone()) :: boolean()
+  def legacy?(zone_name) do
     # Include legacy time zones, like "EST".
     # Olson time zones (e.g. "America/Chicago") always
     # contain a /, so this is a decent enough proxy.
-    !String.contains?(name, "/")
+    !String.contains?(zone_name, "/")
   end
+
+  # Private helpers
 
   defp cast(name, datetime, aliases, opts) do
     zone = Timex.Timezone.get(name, datetime)
     offset = Timex.Timezone.total_offset(zone)
-    formatted_offset = "GMT#{format_offset(offset)}"
+    formatted_offset = format_offset(offset)
     dst = dst?(name, datetime)
     maybe_meta_zone = build_meta_zone(name, datetime, dst, opts)
     maybe_windows_zone = build_windows_zone(name)

@@ -1,21 +1,42 @@
 # Zonex
 
-Zonex is an Elixir library for taming and enhancing time zones.
+An Elixir library for compiling enriched time zone information.
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `zonex` to your list of dependencies in `mix.exs`:
+Add `zonex` to your list of dependencies in `mix.exs`. You will also need to install and configure the `ex_cldr` library with the `ex_cldr_time_zone_names` plugin, since Zonex requires a CLDR backend for compiling time zone names.
 
 ```elixir
 def deps do
   [
-    {:zonex, "~> 0.1.0"}
+    {:zonex, "~> 0.1.0"},
+
+    # Additional required dependencies
+    {:ex_cldr, "~> 2.33"},
+    {:ex_cldr_time_zone_names, "~> 0.1"},
+
+    # ...
   ]
 end
 ```
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/zonex>.
+In your application, configure your CLDR backend module:
 
+```elixir
+defmodule MyApp.Cldr do
+  use Cldr,
+    providers: [
+      Cldr.TimeZoneNames,
+      # ...
+    ],
+    # ...
+end
+```
+
+Then, let Zonex know what CLDR backend module to use in your application config:
+
+```elixir
+# config/config.exs
+
+config :zonex, cldr_backend: MyApp.Cldr
+```
