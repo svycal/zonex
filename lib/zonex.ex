@@ -25,8 +25,8 @@ defmodule Zonex do
     `Cldr.get_locale()` which returns the locale
     set for the current process
   """
-  @spec list(instant :: DateTime.t(), opts :: Keyword.t()) :: [Zone.t()]
-  def list(%DateTime{} = instant, opts \\ []) do
+  @spec list_canonical(instant :: DateTime.t(), opts :: Keyword.t()) :: [Zone.t()]
+  def list_canonical(%DateTime{} = instant, opts \\ []) do
     aliases = Aliases.forward_mapping()
 
     Tzdata.canonical_zone_list()
@@ -50,14 +50,14 @@ defmodule Zonex do
     `Cldr.get_locale()` which returns the locale
     set for the current process
   """
-  @spec get(zone_name :: String.t(), instant :: DateTime.t(), opts :: Keyword.t()) ::
+  @spec get_canonical(zone_name :: String.t(), instant :: DateTime.t(), opts :: Keyword.t()) ::
           {:ok, Zone.t()} | {:error, :zone_not_found}
-  def get(zone_name, %DateTime{} = instant, opts \\ []) do
+  def get_canonical(zone_name, %DateTime{} = instant, opts \\ []) do
     if Tzdata.canonical_zone?(zone_name) do
       {:ok, cast(zone_name, instant, Aliases.forward_mapping(), opts)}
     else
       instant
-      |> list()
+      |> list_canonical()
       |> Enum.find(&(zone_name in &1.aliases))
       |> after_find()
     end
@@ -83,10 +83,10 @@ defmodule Zonex do
     `Cldr.get_locale()` which returns the locale
     set for the current process
   """
-  @spec get!(zone_name :: String.t(), instant :: DateTime.t(), opts :: Keyword.t()) ::
+  @spec get_canonical!(zone_name :: String.t(), instant :: DateTime.t(), opts :: Keyword.t()) ::
           Zone.t() | no_return()
-  def get!(zone_name, %DateTime{} = instant, opts \\ []) do
-    case get(zone_name, instant, opts) do
+  def get_canonical!(zone_name, %DateTime{} = instant, opts \\ []) do
+    case get_canonical(zone_name, instant, opts) do
       {:ok, zone} -> zone
       _ -> raise "zone not found"
     end
@@ -133,7 +133,7 @@ defmodule Zonex do
       zone: zone,
       offset: offset,
       formatted_offset: formatted_offset,
-      standard: standard?(name, maybe_meta_zone),
+      golden: golden?(name, maybe_meta_zone),
       legacy: legacy?(name),
       dst: dst,
       canonical: true
@@ -218,8 +218,8 @@ defmodule Zonex do
   defp current_name(%{standard: standard}, false) when is_binary(standard), do: standard
   defp current_name(%{generic: generic}, _), do: generic
 
-  defp standard?(_, %{territories: territories}), do: "001" in territories
-  defp standard?(_, _), do: false
+  defp golden?(_, %{territories: territories}), do: "001" in territories
+  defp golden?(_, _), do: false
 
   # Logic borrowed from Timex inspect logic:
   # https://github.com/bitwalker/timex/blob/45424fa293066b210eaf94dd650707343583d085/lib/timezone/inspect.ex#L6

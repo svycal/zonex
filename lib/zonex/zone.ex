@@ -18,7 +18,7 @@ defmodule Zonex.Zone do
     :offset,
     :formatted_offset,
     :abbreviation,
-    :standard,
+    :golden,
     :legacy,
     :dst,
     :canonical
@@ -37,7 +37,7 @@ defmodule Zonex.Zone do
           offset: integer(),
           formatted_offset: String.t(),
           abbreviation: String.t(),
-          standard: boolean(),
+          golden: boolean(),
           legacy: boolean(),
           dst: boolean(),
           canonical: boolean()
