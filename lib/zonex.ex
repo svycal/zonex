@@ -189,7 +189,7 @@ defmodule Zonex do
          {:ok, info} <- name_info(zone_name, mzone, opts) do
       %MetaZone{
         name: mzone,
-        territories: MetaZones.territories(zone_name),
+        territories: MetaZones.territories(zone_name, mzone),
         long: build_name_variants(info.long, dst),
         short: build_name_variants(info.short, dst),
         exemplar_city: info.exemplar_city

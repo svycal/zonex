@@ -159,6 +159,10 @@ defmodule ZonexTest do
     zone = Zonex.get_canonical!("Asia/Oral", now())
     assert zone.meta_zone.name == "Kazakhstan_Western"
     refute Enum.member?(zone.meta_zone.territories, "001")
+
+    zone = Zonex.get_canonical!("America/Chicago", now())
+    assert zone.meta_zone.name == "America_Central"
+    assert zone.meta_zone.territories == ["001"]
   end
 
   defp all_canonical do

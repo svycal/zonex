@@ -45,11 +45,19 @@ defmodule Zonex.MetaZones do
   def resolve(_, _), do: {:error, :meta_zone_not_found}
 
   @doc """
-  Gets the territory for a time zone.
+  Gets the territories for a time zone (and its current meta zone).
   """
-  @spec territories(zone_name :: Calendar.time_zone()) :: [territory()]
-  def territories(zone_name) do
-    territories_map()[zone_name] || []
+  @spec territories(zone_name :: Calendar.time_zone(), mzone :: meta_zone_name()) :: [territory()]
+  def territories(zone_name, mzone) do
+    values = territories_map()[zone_name] || []
+
+    Enum.reduce(values, [], fn value, acc ->
+      if value.mzone == mzone do
+        [value.territory | acc]
+      else
+        acc
+      end
+    end)
   end
 
   # Client
@@ -110,17 +118,13 @@ defmodule Zonex.MetaZones do
     xml
     |> parse_xml()
     |> xpath(~x"//supplementalData/metaZones/mapTimezones/mapZone"el,
-      type: ~x"./@type"s,
-      territory: ~x"./@territory"s
+      zone_name: ~x"./@type"s,
+      territory: ~x"./@territory"s,
+      mzone: ~x"./@other"s
     )
-    |> Enum.reduce(%{}, fn %{type: type, territory: territory}, acc ->
-      territories = Map.get(acc, type, [])
-
-      if territory in territories do
-        acc
-      else
-        Map.put(acc, type, [territory | territories])
-      end
+    |> Enum.reduce(%{}, fn %{zone_name: zone_name, territory: territory, mzone: mzone}, acc ->
+      territories = Map.get(acc, zone_name, [])
+      Map.put(acc, zone_name, [%{mzone: mzone, territory: territory} | territories])
     end)
   end
 
