@@ -138,6 +138,29 @@ defmodule ZonexTest do
     assert Zonex.get_canonical!(name, after_springfwd).formatted_offset == "+02:00"
   end
 
+  test "only includes territories for the current metazone" do
+    # As an example, Asia/Oral has been in a number of different metazones over time:
+    #
+    #   <timezone type="Asia/Oral">
+    #     <usesMetazone to="1991-12-15 20:00" mzone="Uralsk"/>
+    #     <usesMetazone to="2004-10-30 22:00" from="1991-12-15 20:00" mzone="Oral"/>
+    #     <usesMetazone from="2004-10-30 22:00" mzone="Kazakhstan_Western"/>
+    #   </timezone>
+    #
+    # It was the golden zone for Oral...
+    #
+    #   <mapZone other="Oral" territory="001" type="Asia/Oral"/>
+    #
+    # But it is not the golden zone for Kazakhstan_Western:
+    #
+    #   <mapZone other="Kazakhstan_Western" territory="001" type="Asia/Aqtobe"/>
+    #
+    # So, we should not expect "001" to be in the territories list for Asia/Oral.
+    zone = Zonex.get_canonical!("Asia/Oral", now())
+    assert zone.meta_zone.name == "Kazakhstan_Western"
+    refute Enum.member?(zone.meta_zone.territories, "001")
+  end
+
   defp all_canonical do
     Zonex.list_canonical(now())
   end
