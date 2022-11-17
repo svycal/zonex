@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0
+
+* Fix metazone territories list to only include territories 
+  for the time zone's current metazone membership
+
 ## 0.3.0
 
 * Rename `Zonex.list/2` to `Zonex.list_canonical/2`
