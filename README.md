@@ -9,7 +9,7 @@ Add `zonex` to your list of dependencies in `mix.exs`. You will also need to ins
 ```elixir
 def deps do
   [
-    {:zonex, "~> 0.4.0"},
+    {:zonex, "~> 0.5.0"},
 
     # Additional required dependencies
     {:ex_cldr, "~> 2.33"},
