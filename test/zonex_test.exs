@@ -165,6 +165,10 @@ defmodule ZonexTest do
     assert zone.meta_zone.territories == ["001"]
   end
 
+  test "maps the 'UTC' time zone to 'Etc/UTC'" do
+    assert Zonex.get_canonical!("UTC", now()).name == "Etc/UTC"
+  end
+
   defp all_canonical do
     Zonex.list_canonical(now())
   end

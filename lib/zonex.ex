@@ -52,7 +52,13 @@ defmodule Zonex do
   """
   @spec get_canonical(zone_name :: String.t(), instant :: DateTime.t(), opts :: Keyword.t()) ::
           {:ok, Zone.t()} | {:error, :zone_not_found}
-  def get_canonical(zone_name, %DateTime{} = instant, opts \\ []) do
+  def get_canonical(zone_name, instant, opts \\ [])
+
+  def get_canonical("UTC", %DateTime{} = instant, opts) do
+    get_canonical("Etc/UTC", instant, opts)
+  end
+
+  def get_canonical(zone_name, %DateTime{} = instant, opts) do
     if Tzdata.canonical_zone?(zone_name) do
       {:ok, cast(zone_name, instant, Aliases.forward_mapping(), opts)}
     else
@@ -88,7 +94,7 @@ defmodule Zonex do
   def get_canonical!(zone_name, %DateTime{} = instant, opts \\ []) do
     case get_canonical(zone_name, instant, opts) do
       {:ok, zone} -> zone
-      _ -> raise "zone not found"
+      _ -> raise "zone not found: #{zone_name}"
     end
   end
 
