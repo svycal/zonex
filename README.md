@@ -26,7 +26,7 @@ In your application, configure your CLDR backend module:
 defmodule MyApp.Cldr do
   use Cldr,
     providers: [
-      Cldr.TimeZoneNames,
+      Cldr.TimeZoneName,
       # ...
     ],
     # ...
