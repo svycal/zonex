@@ -129,8 +129,9 @@ defmodule Zonex.MetaZones do
   end
 
   defp parse_xml(xml) do
-    {:ok, root} = Saxmerl.parse_string(xml, dynamic_atoms: true)
-    root
+    # CLDR documents carry a SYSTEM DOCTYPE; skip DTD fetching (xmerl would
+    # otherwise try to read the .dtd off disk and crash with :enoent).
+    SweetXml.parse(xml, fetch_fun: fn _uri, state -> {:ok, :not_fetched, state} end)
   end
 
   defp parse_date(""), do: nil
