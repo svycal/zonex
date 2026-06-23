@@ -34,7 +34,7 @@ defmodule Zonex.MixProject do
       {:tzdata, "~> 1.1"},
       {:timex, "~> 3.7"},
       {:sweet_xml, "~> 0.6"},
-      {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:ex_cldr, "~> 2.33", only: [:test]},
       {:ex_cldr_time_zone_names, "~> 0.1.0", only: [:test]},
