@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.7.0
 
 - Replace `saxmerl` with `sweet_xml` for parsing CLDR XML
 
