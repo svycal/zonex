@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Replace `saxmerl` with `sweet_xml` for parsing CLDR XML
+
 ## 0.6.0
 
 - Map the `UTC` time zone identifier to `Etc/UTC`
