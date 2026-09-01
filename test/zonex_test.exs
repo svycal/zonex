@@ -112,6 +112,27 @@ defmodule ZonexTest do
              Zonex.get_canonical!("Africa/Nairobi", now())
   end
 
+  test "looks up legacy aliases that are excluded from Zone.aliases" do
+    refute "Cuba" in Zonex.get_canonical!("America/Havana", now()).aliases
+
+    assert Zonex.get_canonical!("Cuba", now()) ==
+             Zonex.get_canonical!("America/Havana", now())
+
+    assert Zonex.get_canonical!("GB", now()) ==
+             Zonex.get_canonical!("Europe/London", now())
+  end
+
+  test "resolves CET whether it is canonical or a Tzdata link" do
+    expected_name = Tzdata.links()["CET"] || "CET"
+
+    assert {:ok, zone} = Zonex.get_canonical("CET", now())
+    assert zone.name == expected_name
+  end
+
+  test "returns an error for unknown zone names" do
+    assert Zonex.get_canonical("Not/AZone", now()) == {:error, :zone_not_found}
+  end
+
   test "straddles the DST boundary" do
     name = "Europe/Copenhagen"
 

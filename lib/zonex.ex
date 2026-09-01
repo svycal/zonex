@@ -37,7 +37,8 @@ defmodule Zonex do
   Gets a zone for a given IANA time zone name.
 
   If the time zone is an alias (not canonical), the canonical zone
-  will be returned instead.
+  will be returned instead. This includes legacy aliases such as
+  `"CET"`, which Tzdata links to a canonical Olson name.
 
   Since names and UTC offsets vary depending on time of year
   (due to daylight saving time), you need to specify the `instant`
@@ -59,24 +60,23 @@ defmodule Zonex do
   end
 
   def get_canonical(zone_name, %DateTime{} = instant, opts) do
-    if Tzdata.canonical_zone?(zone_name) do
-      {:ok, cast(zone_name, instant, Aliases.forward_mapping(), opts)}
-    else
-      instant
-      |> list_canonical()
-      |> Enum.find(&(zone_name in &1.aliases))
-      |> after_find()
+    cond do
+      Tzdata.canonical_zone?(zone_name) ->
+        {:ok, cast(zone_name, instant, Aliases.forward_mapping(), opts)}
+
+      mapped_name = Tzdata.links()[zone_name] ->
+        get_canonical(mapped_name, instant, opts)
+
+      true ->
+        {:error, :zone_not_found}
     end
   end
-
-  defp after_find(%Zone{} = zone), do: {:ok, zone}
-  defp after_find(_), do: {:error, :zone_not_found}
 
   @doc """
   Gets a zone for a given IANA time zone name and raises if not found.
 
   If the time zone is an alias (not canonical), the canonical zone
-  will be returned instead.
+  will be returned instead. This includes legacy aliases such as `"CET"`.
 
   Since names and UTC offsets vary depending on time of year
   (due to daylight saving time), you need to specify the `instant`

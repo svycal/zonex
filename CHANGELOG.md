@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.1
+
+- Resolve legacy Tzdata aliases (e.g. `CET`, `GB`, `Cuba`) in
+  `Zonex.get_canonical/3`. These names are still omitted from
+  `Zone.aliases` so they do not appear in time zone pickers.
+
 ## 0.7.0
 
 - Replace `saxmerl` with `sweet_xml` for parsing CLDR XML
