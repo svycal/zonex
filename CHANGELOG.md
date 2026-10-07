@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.7.2
 
 - Store parsed metazone and Windows zone data in `:persistent_term`.
   Lookups no longer copy the full dataset out of a GenServer, which
