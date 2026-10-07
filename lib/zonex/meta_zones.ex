@@ -71,31 +71,25 @@ defmodule Zonex.MetaZones do
 
   # Server
 
+  # The parsed data lives in `:persistent_term` so lookups read it without
+  # copying. The process owns parsing at startup.
   @impl GenServer
   def init(_arg) do
     path = Application.app_dir(:zonex, "priv/metaZones.xml")
     contents = File.read!(path)
-    {:ok, %{rules: parse_rules(contents), territories: parse_territories(contents)}}
-  end
-
-  @impl GenServer
-  def handle_call(:rules, _from, state) do
-    {:reply, state[:rules], state}
-  end
-
-  @impl GenServer
-  def handle_call(:territories, _from, state) do
-    {:reply, state[:territories], state}
+    :persistent_term.put({__MODULE__, :rules}, parse_rules(contents))
+    :persistent_term.put({__MODULE__, :territories}, parse_territories(contents))
+    {:ok, nil}
   end
 
   # Private helpers
 
   defp rules do
-    GenServer.call(__MODULE__, :rules)
+    :persistent_term.get({__MODULE__, :rules})
   end
 
   defp territories_map do
-    GenServer.call(__MODULE__, :territories)
+    :persistent_term.get({__MODULE__, :territories})
   end
 
   defp parse_rules(xml) do

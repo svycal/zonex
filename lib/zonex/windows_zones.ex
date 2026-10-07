@@ -16,7 +16,7 @@ defmodule Zonex.WindowsZones do
   """
   @spec standard_name(zone_name :: Calendar.time_zone()) :: standard_name() | nil
   def standard_name(zone_name) do
-    GenServer.call(__MODULE__, :standard_names)[zone_name]
+    :persistent_term.get({__MODULE__, :standard_names})[zone_name]
   end
 
   @doc """
@@ -179,16 +179,14 @@ defmodule Zonex.WindowsZones do
 
   # Server
 
+  # The parsed data lives in `:persistent_term` so lookups read it without
+  # copying. The process owns parsing at startup.
   @impl GenServer
   def init(_arg) do
     path = Application.app_dir(:zonex, "priv/windowsZones.xml")
     contents = File.read!(path)
-    {:ok, parse_contents(contents)}
-  end
-
-  @impl GenServer
-  def handle_call(:standard_names, _from, state) do
-    {:reply, state, state}
+    :persistent_term.put({__MODULE__, :standard_names}, parse_contents(contents))
+    {:ok, nil}
   end
 
   # Private helpers

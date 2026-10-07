@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Store parsed metazone and Windows zone data in `:persistent_term`.
+  Lookups no longer copy the full dataset out of a GenServer, which
+  makes `Zonex.list_canonical/2` about 5x faster.
+
 ## 0.7.1
 
 - Resolve legacy Tzdata aliases (e.g. `CET`, `GB`, `Cuba`) in
