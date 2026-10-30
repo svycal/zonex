@@ -203,20 +203,38 @@ defmodule Zonex do
     time_point = elem(DateTime.to_gregorian_seconds(datetime), 0)
 
     case Tzdata.periods_for_time(zone_name, time_point, :utc) do
-      [period | _] -> dst_period?(period)
+      [period | _] -> daylight_period?(zone_name, period)
       _ -> false
     end
   end
 
-  defp dst_period?(%{std_off: std_off}), do: std_off != 0
+  # Tzdata uses negative DST for a few zones (e.g. Europe/Dublin), where
+  # winter is a DST period with a negative offset and summer is standard
+  # time. CLDR follows the rearguard tz format, which flips these so that
+  # summer is daylight time. So a standard period followed by a negative
+  # DST period with the same base offset counts as daylight time.
+  defp daylight_period?(_zone_name, %{std_off: std_off}) when std_off > 0, do: true
+  defp daylight_period?(_zone_name, %{std_off: std_off}) when std_off < 0, do: false
+
+  defp daylight_period?(zone_name, %{std_off: 0, utc_off: utc_off, until: %{utc: until}})
+       when is_integer(until) do
+    case Tzdata.periods_for_time(zone_name, until, :utc) do
+      [%{std_off: std_off, utc_off: ^utc_off} | _] -> std_off < 0
+      _ -> false
+    end
+  end
+
+  defp daylight_period?(_zone_name, _period), do: false
 
   defp dst_between?(_zone_name, from, until) when from >= until, do: false
 
+  # Any non-zero DST offset means the clocks shift during the year, whether
+  # Tzdata expresses the shift as positive or negative DST.
   defp dst_between?(zone_name, from, until) do
     case Tzdata.periods_for_time(zone_name, from, :utc) do
       [period | _] ->
         cond do
-          dst_period?(period) -> true
+          period.std_off != 0 -> true
           is_integer(period.until.utc) -> dst_between?(zone_name, period.until.utc, until)
           true -> false
         end
