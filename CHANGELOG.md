@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Add `Zonex.observes_dst?/2`, which determines if a zone observes
+  daylight saving time at any point during a calendar year. The `dst`
+  field on `Zonex.Zone` is still whether daylight saving time is in
+  effect at a given instant.
+- Fix `dst` and the current metazone names for zones that Tzdata
+  describes with negative DST. For example, Europe/Dublin reported
+  `dst: true` and "Irish Standard Time" in winter, and now does so in
+  summer, matching CLDR.
+
 ## 0.7.2
 
 - Store parsed metazone and Windows zone data in `:persistent_term`.

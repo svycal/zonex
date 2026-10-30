@@ -115,6 +115,34 @@ defmodule Zonex do
     !String.contains?(zone_name, "/")
   end
 
+  @doc """
+  Determines if a zone observes daylight saving time at any point
+  during a calendar year (in UTC).
+
+  Unlike the `dst` field on `Zonex.Zone`, which is whether daylight
+  saving time is in effect at a given instant, this covers the whole
+  year. In January, America/Denver and America/Phoenix both have
+  `dst: false`, but only America/Denver observes daylight saving time.
+
+  Returns `false` for unknown zone names.
+
+      iex> Zonex.observes_dst?("America/Denver", 2026)
+      true
+
+      iex> Zonex.observes_dst?("America/Phoenix", 2026)
+      false
+  """
+  @spec observes_dst?(zone_name :: Calendar.time_zone(), year :: integer()) :: boolean()
+  def observes_dst?(zone_name, year) when is_integer(year) do
+    year_start = :calendar.datetime_to_gregorian_seconds({{year, 1, 1}, {0, 0, 0}})
+    year_end = :calendar.datetime_to_gregorian_seconds({{year + 1, 1, 1}, {0, 0, 0}})
+
+    # Tzdata raises for unknown zones in far-future years, so check that
+    # the zone exists first. Then walk the periods that overlap the year,
+    # and check whether any of them is daylight saving time.
+    Tzdata.zone_exists?(zone_name) && dst_between?(zone_name, year_start, year_end)
+  end
+
   # Private helpers
 
   defp cast(name, datetime, aliases, opts) do
@@ -175,8 +203,44 @@ defmodule Zonex do
     time_point = elem(DateTime.to_gregorian_seconds(datetime), 0)
 
     case Tzdata.periods_for_time(zone_name, time_point, :utc) do
-      [period | _] -> period[:std_off] != 0
+      [period | _] -> daylight_period?(zone_name, period)
       _ -> false
+    end
+  end
+
+  # Tzdata uses negative DST for a few zones (e.g. Europe/Dublin), where
+  # winter is a DST period with a negative offset and summer is standard
+  # time. CLDR follows the rearguard tz format, which flips these so that
+  # summer is daylight time. So a standard period followed by a negative
+  # DST period with the same base offset counts as daylight time.
+  defp daylight_period?(_zone_name, %{std_off: std_off}) when std_off > 0, do: true
+  defp daylight_period?(_zone_name, %{std_off: std_off}) when std_off < 0, do: false
+
+  defp daylight_period?(zone_name, %{std_off: 0, utc_off: utc_off, until: %{utc: until}})
+       when is_integer(until) do
+    case Tzdata.periods_for_time(zone_name, until, :utc) do
+      [%{std_off: std_off, utc_off: ^utc_off} | _] -> std_off < 0
+      _ -> false
+    end
+  end
+
+  defp daylight_period?(_zone_name, _period), do: false
+
+  defp dst_between?(_zone_name, from, until) when from >= until, do: false
+
+  # Any non-zero DST offset means the clocks shift during the year, whether
+  # Tzdata expresses the shift as positive or negative DST.
+  defp dst_between?(zone_name, from, until) do
+    case Tzdata.periods_for_time(zone_name, from, :utc) do
+      [period | _] ->
+        cond do
+          period.std_off != 0 -> true
+          is_integer(period.until.utc) -> dst_between?(zone_name, period.until.utc, until)
+          true -> false
+        end
+
+      _ ->
+        false
     end
   end
 

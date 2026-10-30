@@ -73,6 +73,40 @@ defmodule ZonexTest do
     refute zone.dst
   end
 
+  test "determines whether a zone observes DST during a year" do
+    assert Zonex.observes_dst?("America/Denver", 2022)
+    refute Zonex.observes_dst?("America/Phoenix", 2022)
+
+    # Southern hemisphere...
+    assert Zonex.observes_dst?("Australia/Sydney", 2022)
+
+    # Morocco observes negative DST during Ramadan, from late March to early May in 2022...
+    assert Zonex.observes_dst?("Africa/Casablanca", 2022)
+
+    # Brazil abolished DST after the period that ended in February 2019...
+    assert Zonex.observes_dst?("America/Sao_Paulo", 2019)
+    refute Zonex.observes_dst?("America/Sao_Paulo", 2020)
+
+    # Aliases resolve, and unknown zones don't observe DST...
+    assert Zonex.observes_dst?("US/Mountain", 2022)
+    refute Zonex.observes_dst?("Not/AZone", 2022)
+    refute Zonex.observes_dst?("Not/AZone", 2100)
+  end
+
+  test "treats summer as daylight time in zones with negative DST" do
+    # Tzdata expresses Irish winter time as negative DST, but CLDR names
+    # summer as daylight time ("Irish Standard Time")...
+    zone = Zonex.get_canonical!("Europe/Dublin", ~U[2022-01-15 00:00:00Z])
+    refute zone.dst
+    assert zone.long_name == "Greenwich Mean Time"
+
+    zone = Zonex.get_canonical!("Europe/Dublin", ~U[2022-07-15 00:00:00Z])
+    assert zone.dst
+    assert zone.long_name == "Irish Standard Time"
+
+    assert Zonex.observes_dst?("Europe/Dublin", 2022)
+  end
+
   test "determines the best long name" do
     # Current meta zone name if available
     zone = Zonex.get_canonical!("America/Chicago", ~U[2022-01-01 00:00:00Z])
