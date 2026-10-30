@@ -4,6 +4,7 @@ defmodule Zonex do
   """
 
   alias Zonex.Aliases
+  alias Zonex.DaylightSaving
   alias Zonex.Zone
   alias Zonex.MetaZones
   alias Zonex.MetaZones.MetaZone
@@ -142,6 +143,7 @@ defmodule Zonex do
       golden: golden?(name, maybe_meta_zone),
       legacy: legacy?(name),
       dst: dst,
+      observes_dst: observes_dst?(name, datetime),
       canonical: true
     }
   end
@@ -175,9 +177,15 @@ defmodule Zonex do
     time_point = elem(DateTime.to_gregorian_seconds(datetime), 0)
 
     case Tzdata.periods_for_time(zone_name, time_point, :utc) do
-      [period | _] -> period[:std_off] != 0
+      [period | _] -> DaylightSaving.period?(period)
       _ -> false
     end
+  end
+
+  defp observes_dst?(zone_name, datetime) do
+    utc_seconds = elem(DateTime.to_gregorian_seconds(datetime), 0)
+    {{year, _, _}, _} = :calendar.gregorian_seconds_to_datetime(utc_seconds)
+    DaylightSaving.observes?(zone_name, year)
   end
 
   defp build_windows_zone(zone_name) do

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Add an `observes_dst` field to `Zonex.Zone`, which is whether the zone
+  observes daylight saving time at any point during the calendar year
+  of the given instant. The `dst` field is still whether daylight saving
+  time is in effect at the instant itself. Code that builds a
+  `%Zonex.Zone{}` directly must now set `observes_dst`.
+
 ## 0.7.2
 
 - Store parsed metazone and Windows zone data in `:persistent_term`.
