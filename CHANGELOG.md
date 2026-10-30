@@ -2,11 +2,10 @@
 
 ## Unreleased
 
-- Add an `observes_dst` field to `Zonex.Zone`, which is whether the zone
-  observes daylight saving time at any point during the calendar year
-  of the given instant. The `dst` field is still whether daylight saving
-  time is in effect at the instant itself. Code that builds a
-  `%Zonex.Zone{}` directly must now set `observes_dst`.
+- Add `Zonex.observes_dst?/2`, which determines if a zone observes
+  daylight saving time at any point during a calendar year. The `dst`
+  field on `Zonex.Zone` is still whether daylight saving time is in
+  effect at a given instant.
 
 ## 0.7.2
 

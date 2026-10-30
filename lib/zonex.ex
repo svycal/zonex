@@ -4,7 +4,6 @@ defmodule Zonex do
   """
 
   alias Zonex.Aliases
-  alias Zonex.DaylightSaving
   alias Zonex.Zone
   alias Zonex.MetaZones
   alias Zonex.MetaZones.MetaZone
@@ -116,6 +115,33 @@ defmodule Zonex do
     !String.contains?(zone_name, "/")
   end
 
+  @doc """
+  Determines if a zone observes daylight saving time at any point
+  during a calendar year (in UTC).
+
+  Unlike the `dst` field on `Zonex.Zone`, which is whether daylight
+  saving time is in effect at a given instant, this covers the whole
+  year. In January, America/Denver and America/Phoenix both have
+  `dst: false`, but only America/Denver observes daylight saving time.
+
+  Returns `false` for unknown zone names.
+
+      iex> Zonex.observes_dst?("America/Denver", 2026)
+      true
+
+      iex> Zonex.observes_dst?("America/Phoenix", 2026)
+      false
+  """
+  @spec observes_dst?(zone_name :: Calendar.time_zone(), year :: integer()) :: boolean()
+  def observes_dst?(zone_name, year) do
+    year_start = :calendar.datetime_to_gregorian_seconds({{year, 1, 1}, {0, 0, 0}})
+    year_end = :calendar.datetime_to_gregorian_seconds({{year + 1, 1, 1}, {0, 0, 0}})
+
+    # Walk the periods that overlap the year, and check whether any of
+    # them is daylight saving time.
+    dst_between?(zone_name, year_start, year_end)
+  end
+
   # Private helpers
 
   defp cast(name, datetime, aliases, opts) do
@@ -143,7 +169,6 @@ defmodule Zonex do
       golden: golden?(name, maybe_meta_zone),
       legacy: legacy?(name),
       dst: dst,
-      observes_dst: observes_dst?(name, datetime),
       canonical: true
     }
   end
@@ -177,15 +202,27 @@ defmodule Zonex do
     time_point = elem(DateTime.to_gregorian_seconds(datetime), 0)
 
     case Tzdata.periods_for_time(zone_name, time_point, :utc) do
-      [period | _] -> DaylightSaving.period?(period)
+      [period | _] -> dst_period?(period)
       _ -> false
     end
   end
 
-  defp observes_dst?(zone_name, datetime) do
-    utc_seconds = elem(DateTime.to_gregorian_seconds(datetime), 0)
-    {{year, _, _}, _} = :calendar.gregorian_seconds_to_datetime(utc_seconds)
-    DaylightSaving.observes?(zone_name, year)
+  defp dst_period?(%{std_off: std_off}), do: std_off != 0
+
+  defp dst_between?(_zone_name, from, until) when from >= until, do: false
+
+  defp dst_between?(zone_name, from, until) do
+    case Tzdata.periods_for_time(zone_name, from, :utc) do
+      [period | _] ->
+        cond do
+          dst_period?(period) -> true
+          is_integer(period.until.utc) -> dst_between?(zone_name, period.until.utc, until)
+          true -> false
+        end
+
+      _ ->
+        false
+    end
   end
 
   defp build_windows_zone(zone_name) do

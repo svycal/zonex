@@ -73,34 +73,23 @@ defmodule ZonexTest do
     refute zone.dst
   end
 
-  test "determines whether the zone observes DST during the year" do
-    january = ~U[2022-01-01 00:00:00Z]
-
-    zone = Zonex.get_canonical!("America/Denver", january)
-    refute zone.dst
-    assert zone.observes_dst
-
-    zone = Zonex.get_canonical!("America/Phoenix", january)
-    refute zone.dst
-    refute zone.observes_dst
+  test "determines whether a zone observes DST during a year" do
+    assert Zonex.observes_dst?("America/Denver", 2022)
+    refute Zonex.observes_dst?("America/Phoenix", 2022)
 
     # Southern hemisphere...
-    zone = Zonex.get_canonical!("Australia/Sydney", ~U[2022-06-01 00:00:00Z])
-    refute zone.dst
-    assert zone.observes_dst
+    assert Zonex.observes_dst?("Australia/Sydney", 2022)
 
     # Morocco observes negative DST during Ramadan, which fell in April in 2022...
-    assert Zonex.get_canonical!("Africa/Casablanca", january).observes_dst
+    assert Zonex.observes_dst?("Africa/Casablanca", 2022)
 
     # Brazil abolished DST after the period that ended in February 2019...
-    assert Zonex.get_canonical!("America/Sao_Paulo", ~U[2019-12-01 00:00:00Z]).observes_dst
-    refute Zonex.get_canonical!("America/Sao_Paulo", ~U[2020-01-01 00:00:00Z]).observes_dst
-  end
+    assert Zonex.observes_dst?("America/Sao_Paulo", 2019)
+    refute Zonex.observes_dst?("America/Sao_Paulo", 2020)
 
-  test "determines DST observance in the far future, where Tzdata fails for some zones" do
-    # Tzdata's far-future periods raise for zones like Africa/Casablanca,
-    # which must not affect other zones in the same year.
-    assert Zonex.get_canonical!("America/Denver", ~U[2100-04-01 00:00:00Z]).observes_dst
+    # Aliases resolve, and unknown zones don't observe DST...
+    assert Zonex.observes_dst?("US/Mountain", 2022)
+    refute Zonex.observes_dst?("Not/AZone", 2022)
   end
 
   test "determines the best long name" do

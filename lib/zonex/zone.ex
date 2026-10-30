@@ -1,13 +1,6 @@
 defmodule Zonex.Zone do
   @moduledoc """
   An aggregated time zone.
-
-  The `dst` field is whether daylight saving time is in effect at the
-  instant the zone was built for. The `observes_dst` field is whether the
-  zone observes daylight saving time at any point during the calendar
-  year (in UTC) of that instant. For example, in January, America/Denver
-  and America/Phoenix both have `dst: false`, but only America/Denver
-  has `observes_dst: true`.
   """
 
   alias Zonex.MetaZones.MetaZone
@@ -28,7 +21,6 @@ defmodule Zonex.Zone do
     :golden,
     :legacy,
     :dst,
-    :observes_dst,
     :canonical
   ]
   defstruct @enforce_keys
@@ -48,7 +40,6 @@ defmodule Zonex.Zone do
           golden: boolean(),
           legacy: boolean(),
           dst: boolean(),
-          observes_dst: boolean(),
           canonical: boolean()
         }
 end
