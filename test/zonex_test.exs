@@ -80,7 +80,7 @@ defmodule ZonexTest do
     # Southern hemisphere...
     assert Zonex.observes_dst?("Australia/Sydney", 2022)
 
-    # Morocco observes negative DST during Ramadan, which fell in April in 2022...
+    # Morocco observes negative DST during Ramadan, from late March to early May in 2022...
     assert Zonex.observes_dst?("Africa/Casablanca", 2022)
 
     # Brazil abolished DST after the period that ended in February 2019...
@@ -90,6 +90,7 @@ defmodule ZonexTest do
     # Aliases resolve, and unknown zones don't observe DST...
     assert Zonex.observes_dst?("US/Mountain", 2022)
     refute Zonex.observes_dst?("Not/AZone", 2022)
+    refute Zonex.observes_dst?("Not/AZone", 2100)
   end
 
   test "determines the best long name" do

@@ -133,13 +133,14 @@ defmodule Zonex do
       false
   """
   @spec observes_dst?(zone_name :: Calendar.time_zone(), year :: integer()) :: boolean()
-  def observes_dst?(zone_name, year) do
+  def observes_dst?(zone_name, year) when is_integer(year) do
     year_start = :calendar.datetime_to_gregorian_seconds({{year, 1, 1}, {0, 0, 0}})
     year_end = :calendar.datetime_to_gregorian_seconds({{year + 1, 1, 1}, {0, 0, 0}})
 
-    # Walk the periods that overlap the year, and check whether any of
-    # them is daylight saving time.
-    dst_between?(zone_name, year_start, year_end)
+    # Tzdata raises for unknown zones in far-future years, so check that
+    # the zone exists first. Then walk the periods that overlap the year,
+    # and check whether any of them is daylight saving time.
+    Tzdata.zone_exists?(zone_name) && dst_between?(zone_name, year_start, year_end)
   end
 
   # Private helpers
