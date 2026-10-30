@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.8.0
 
 - Add `Zonex.observes_dst?/2`, which determines if a zone observes
   daylight saving time at any point during a calendar year. The `dst`
